@@ -18,6 +18,19 @@ const state = {
   eepromData: null
 };
 
+// Reusable Vector SVG Icons for Modern Dynamic Telemetry & Diagnostic Status
+const SVG_ICONS = {
+  checkSuccess: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#059669" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`,
+  warningAmber: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#d97706" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`,
+  plugMuted: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6M6 8h12M6 8v5a6 6 0 0 0 12 0V8M12 19v3"></path></svg>`,
+  alertRose: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#e11d48" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`,
+  doctorHeartOk: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#059669" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>`,
+  doctorHeartWarn: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#d97706" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>`,
+  checkPass: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#059669" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
+  checkWarn: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#d97706" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`,
+  checkFail: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#e11d48" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`
+};
+
 // WebSocket Instance
 let ws = null;
 
@@ -207,7 +220,7 @@ function updateHardwareDisplay(connected, dev) {
     diagBanner.className = 'diagnostic-banner';
     diagBanner.style.background = '#f0fdf4';
     diagBanner.style.borderColor = '#bbf7d0';
-    diagIcon.innerText = '✅';
+    diagIcon.innerHTML = SVG_ICONS.checkSuccess;
     diagTitle.innerText = 'Printer Online & Ready';
     diagDesc.innerText = `Normal Ready State (Physical Hardware Verified) • Port: ${dev.port || 'USB'}`;
     activeModelBadge.innerText = dev.model_id || state.activeModel;
@@ -222,7 +235,7 @@ function updateHardwareDisplay(connected, dev) {
     diagBanner.className = 'diagnostic-banner warning';
     diagBanner.style.background = '#fffbeb';
     diagBanner.style.borderColor = '#fde68a';
-    diagIcon.innerText = '⚠️';
+    diagIcon.innerHTML = SVG_ICONS.warningAmber;
     diagTitle.innerText = `${dev.name} is Offline`;
     diagDesc.innerText = `Turn on printer power and securely plug the USB cable into port ${dev.port || 'USB'}.`;
     activeModelBadge.innerText = state.activeModel;
@@ -238,7 +251,7 @@ function updateHardwareDisplay(connected, dev) {
     diagBanner.className = 'diagnostic-banner';
     diagBanner.style.background = 'linear-gradient(135deg, #f0f9ff 0%, #f8fafc 100%)';
     diagBanner.style.borderColor = 'var(--border-subtle)';
-    diagIcon.innerText = '🔌';
+    diagIcon.innerHTML = SVG_ICONS.plugMuted;
     diagTitle.innerText = 'No Physical Epson Printer Detected';
     diagDesc.innerText = 'Connect your Epson printer via USB cable and turn power ON to read or reset counters.';
     activePortBadge.innerText = 'Auto selection';
@@ -526,18 +539,18 @@ function renderHardwareStatus(status) {
 
   if (status.is_fatal || status.is_waste_full) {
     banner.className = 'diagnostic-banner critical';
-    icon.innerText = '🚨';
+    icon.innerHTML = SVG_ICONS.alertRose;
     title.innerText = status.is_waste_full ? 'Waste Ink Pad Service Required (Full)' : 'Hardware Fatal Error Alert';
     desc.innerText = `${status.error_description} • Error Code: 0x${status.error_code} • State: ${status.state}`;
     playAlertTone();
   } else if (status.is_paper_jam || status.is_cover_open) {
     banner.className = 'diagnostic-banner warning';
-    icon.innerText = '⚠️';
+    icon.innerHTML = SVG_ICONS.warningAmber;
     title.innerText = status.is_paper_jam ? 'Paper Jam in Feed Roller' : 'Scanner Cover / Unit Open';
     desc.innerText = `${status.error_description} • Error Code: 0x${status.error_code}`;
   } else {
     banner.className = 'diagnostic-banner';
-    icon.innerText = '✅';
+    icon.innerHTML = SVG_ICONS.checkSuccess;
     desc.innerText = `Normal Ready State (Physical Hardware Verified) • Port: ${state.activePort || 'USB'}`;
   }
 
@@ -1063,14 +1076,14 @@ window.runHardwareDiagnostics = async function() {
     if (data.healthy) {
       banner.style.borderColor = '#a7f3d0';
       banner.style.background = 'linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%)';
-      icon.innerText = '✅';
+      icon.innerHTML = SVG_ICONS.doctorHeartOk;
       title.innerText = 'All Hardware & Spooler Systems Operational';
       desc.innerText = 'No printhead blockages, queue corruptions, or communication errors found.';
       playSuccessChime();
     } else {
       banner.style.borderColor = '#fecdd3';
       banner.style.background = 'linear-gradient(135deg, #fff1f2 0%, #fef2f2 100%)';
-      icon.innerText = '⚠️';
+      icon.innerHTML = SVG_ICONS.doctorHeartWarn;
       title.innerText = 'Hardware Attention Required';
       desc.innerText = 'One or more diagnostic checks detected an issue. Review items below.';
       playAlertTone();
@@ -1092,9 +1105,11 @@ window.runHardwareDiagnostics = async function() {
         actionHtml = `<div style="font-size: 11.5px; color: var(--accent-cyan); margin-top: 5px;">🔧 Recommended: ${c.action}</div>`;
       }
 
+      const statusIcon = c.status === 'PASS' ? SVG_ICONS.checkPass : (c.status === 'WARN' ? SVG_ICONS.checkWarn : SVG_ICONS.checkFail);
+
       card.innerHTML = `
         <div class="check-item-left">
-          <span class="check-status-icon">${c.status === 'PASS' ? '✅' : (c.status === 'WARN' ? '⚠️' : '❌')}</span>
+          <div class="check-status-badge ${c.status.toLowerCase()}">${statusIcon}</div>
           <div>
             <div class="check-item-name">${c.name}</div>
             <div class="check-item-msg">${c.message}</div>
@@ -1261,7 +1276,8 @@ async function loadBackups() {
             </div>
           </div>
           <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 14px;" onclick="restoreBackup('${b.filename}')">
-            🔄 Restore to Printer
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
+            <span>Restore to Printer</span>
           </button>
         `;
         container.appendChild(item);

@@ -53,28 +53,64 @@
 
         <nav class="nav-menu">
           <div class="nav-item active" data-tab="reset">
-            <span class="nav-icon">⚡</span>
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+            </span>
             <span>Waste Pad Reset</span>
           </div>
           <div class="nav-item" data-tab="maintenance">
-            <span class="nav-icon">🛠️</span>
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+              </svg>
+            </span>
             <span>Printhead & Mechanical</span>
           </div>
           <div class="nav-item" data-tab="doctor">
-            <span class="nav-icon">🩺</span>
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+              </svg>
+            </span>
             <span>Spooler & Hardware Doctor</span>
           </div>
           <div class="nav-item" data-tab="models">
-            <span class="nav-icon">📚</span>
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                <polyline points="2 17 12 22 22 17"></polyline>
+                <polyline points="2 12 12 17 22 12"></polyline>
+              </svg>
+            </span>
             <span>Model Catalog</span>
             <span class="nav-badge" id="badgeModelsCount">234</span>
           </div>
           <div class="nav-item" data-tab="vault">
-            <span class="nav-icon">💾</span>
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                <rect x="9" y="9" width="6" height="6"></rect>
+                <line x1="9" y1="1" x2="9" y2="4"></line>
+                <line x1="15" y1="1" x2="15" y2="4"></line>
+                <line x1="9" y1="20" x2="9" y2="23"></line>
+                <line x1="15" y1="20" x2="15" y2="23"></line>
+                <line x1="20" y1="9" x2="23" y2="9"></line>
+                <line x1="20" y1="14" x2="23" y2="14"></line>
+                <line x1="1" y1="9" x2="4" y2="9"></line>
+                <line x1="1" y1="14" x2="4" y2="14"></line>
+              </svg>
+            </span>
             <span>NVRAM Vault</span>
           </div>
           <div class="nav-item" data-tab="certificate">
-            <span class="nav-icon">📜</span>
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="8" r="6"></circle>
+                <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+              </svg>
+            </span>
             <span>Service Certificate</span>
           </div>
         </nav>
@@ -96,12 +132,20 @@
         <div class="header-left">
           <!-- Mobile Sidebar Toggle -->
           <button class="btn-icon hamburger-btn" id="btnToggleSidebar" title="Toggle Navigation Menu" aria-label="Toggle navigation">
-            <span class="hamburger-icon">☰</span>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
           </button>
 
           <!-- Mobile Brand Title (visible only on small screens) -->
           <div class="mobile-brand-title">
-            <span class="mobile-brand-icon">⚡</span>
+            <span class="mobile-brand-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+            </span>
             <span>Trel- Epson</span>
           </div>
 
@@ -133,8 +177,16 @@
             </select>
           </div>
           <div class="header-actions-group">
-            <button class="btn-icon" id="btnRefreshPrinters" title="Re-scan USB & Hardware Ports">🔄</button>
-            <button class="btn-icon" id="btnPurgeSpooler" title="Purge Stuck Print Spooler Queue">⚡</button>
+            <button class="btn-icon" id="btnRefreshPrinters" title="Re-scan USB & Hardware Ports">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+              </svg>
+            </button>
+            <button class="btn-icon" id="btnPurgeSpooler" title="Purge Stuck Print Spooler Queue">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+            </button>
           </div>
         </div>
       </header>
@@ -150,14 +202,21 @@
           <!-- Real-Time Hardware Diagnostic Telemetry Banner -->
           <div class="diagnostic-banner" id="diagBanner">
             <div class="diag-left">
-              <span class="diag-icon" id="diagIcon">🔌</span>
+              <span class="diag-icon" id="diagIcon">
+                <svg class="diag-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2v6M6 8h12M6 8v5a6 6 0 0 0 12 0V8M12 19v3"></path>
+                </svg>
+              </span>
               <div>
                 <div class="diag-headline" id="diagTitle">No Physical Epson Printer Detected</div>
                 <div class="diag-subline" id="diagDesc">Connect your Epson printer via USB cable and turn power ON to read or reset counters.</div>
               </div>
             </div>
-            <button class="btn btn-secondary" id="btnQuickPurge" style="font-size: 12px; padding: 6px 12px;">
-              ⚡ Purge Spooler Queue
+            <button class="btn btn-secondary" id="btnQuickPurge" style="font-size: 12px; padding: 7px 14px;">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              <span>Purge Spooler Queue</span>
             </button>
           </div>
 
@@ -168,7 +227,11 @@
             <div class="glass-card">
               <div class="card-header">
                 <div class="card-title">
-                  <span class="card-title-icon">⚡</span>
+                  <div class="card-icon-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                  </div>
                   <span>Waste Ink Pad Counter</span>
                 </div>
                 <span class="badge-tag" id="counterStatusBadge">NOT READ</span>
@@ -178,6 +241,12 @@
               <div class="gauge-center-wrapper">
                 <div class="radial-gauge-container">
                   <svg class="radial-svg" viewBox="0 0 200 200">
+                    <defs>
+                      <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#0284c7" />
+                        <stop offset="100%" stop-color="#0ea5e9" />
+                      </linearGradient>
+                    </defs>
                     <circle class="gauge-track" cx="100" cy="100" r="80"></circle>
                     <circle class="gauge-fill" id="radialGaugeCircle" cx="100" cy="100" r="80"
                       stroke-dasharray="502.65" stroke-dashoffset="502.65"></circle>
@@ -195,9 +264,14 @@
                 <!-- Counter 1: Main pad counter -->
                 <div class="sub-counter-row">
                   <div class="sub-counter-info">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-main);">
-                      <input type="checkbox" id="chkMainPad" checked style="width: 16px; height: 16px; accent-color: var(--accent-cyan); cursor: pointer;">
-                      <span>Main pad counter</span>
+                    <label class="custom-chk-label">
+                      <input type="checkbox" id="chkMainPad" checked class="custom-chk-input">
+                      <span class="custom-chk-box">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="3.5 8.5 6.5 11.5 12.5 4.5"></polyline>
+                        </svg>
+                      </span>
+                      <span class="chk-text">Main pad counter</span>
                     </label>
                     <div style="text-align: right; display: flex; align-items: baseline; gap: 6px;">
                       <strong id="mainCounterVal" style="color: var(--text-main); font-family: var(--font-mono); font-size: 13px;">-- pts (--%)</strong>
@@ -212,9 +286,14 @@
                 <!-- Counter 2: Platen pad counter -->
                 <div class="sub-counter-row">
                   <div class="sub-counter-info">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-main);">
-                      <input type="checkbox" id="chkPlatenPad" style="width: 16px; height: 16px; accent-color: var(--accent-cyan); cursor: pointer;">
-                      <span>Platen pad counter</span>
+                    <label class="custom-chk-label">
+                      <input type="checkbox" id="chkPlatenPad" class="custom-chk-input">
+                      <span class="custom-chk-box">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="3.5 8.5 6.5 11.5 12.5 4.5"></polyline>
+                        </svg>
+                      </span>
+                      <span class="chk-text">Platen pad counter</span>
                     </label>
                     <div style="text-align: right; display: flex; align-items: baseline; gap: 6px;">
                       <strong id="platenCounterVal" style="color: var(--text-main); font-family: var(--font-mono); font-size: 13px;">-- pts (--%)</strong>
@@ -229,9 +308,14 @@
                 <!-- Counter 3: Ink System pad counter -->
                 <div class="sub-counter-row">
                   <div class="sub-counter-info">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-main);">
-                      <input type="checkbox" id="chkInkSystemPad" style="width: 16px; height: 16px; accent-color: var(--accent-cyan); cursor: pointer;">
-                      <span>Ink System pad counter</span>
+                    <label class="custom-chk-label">
+                      <input type="checkbox" id="chkInkSystemPad" class="custom-chk-input">
+                      <span class="custom-chk-box">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="3.5 8.5 6.5 11.5 12.5 4.5"></polyline>
+                        </svg>
+                      </span>
+                      <span class="chk-text">Ink System pad counter</span>
                     </label>
                     <div style="text-align: right; display: flex; align-items: baseline; gap: 6px;">
                       <strong id="inkSystemCounterVal" style="color: var(--text-main); font-family: var(--font-mono); font-size: 13px;">-- pts (--%)</strong>
@@ -247,10 +331,17 @@
               <!-- Authentic AdjProg Action Buttons: [Check] and [Initialize] -->
               <div class="counter-action-grid">
                 <button class="btn btn-secondary btn-check-action" id="btnCheckCounters" title="Send factory read packet to query current counter registers">
-                  🔍 Check (Read)
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <span>Check (Read)</span>
                 </button>
                 <button class="btn btn-danger btn-reset-action" id="btnOpenResetModal" title="Reset selected waste counters to 0%">
-                  ⚡ Initialize (Reset 0%)
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                  </svg>
+                  <span>Initialize (Reset 0%)</span>
                 </button>
               </div>
             </div>
@@ -259,7 +350,11 @@
             <div class="glass-card">
               <div class="card-header">
                 <div class="card-title">
-                  <span class="card-title-icon">💧</span>
+                  <div class="card-icon-badge ink-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+                    </svg>
+                  </div>
                   <span>Ink Cartridges / Tanks</span>
                 </div>
                 <span class="badge-tag" id="inkStatusBadge">Awaiting Connection</span>
@@ -269,33 +364,53 @@
               <div class="ink-tanks-container">
                 <div class="ink-tank-card">
                   <div class="ink-tank-glass">
+                    <div class="tank-ruler-marks">
+                      <span class="ruler-mark"></span>
+                      <span class="ruler-mark"></span>
+                      <span class="ruler-mark"></span>
+                    </div>
                     <div class="ink-fill-column ink-black" id="inkBlackBar" style="height: 0%;"></div>
                   </div>
-                  <div class="ink-label-title">BK (Black)</div>
+                  <div class="ink-label-title"><span class="tank-dot dot-bk"></span>BK (Black)</div>
                   <div class="ink-pct-val" id="inkBlackVal">--%</div>
                 </div>
 
                 <div class="ink-tank-card">
                   <div class="ink-tank-glass">
+                    <div class="tank-ruler-marks">
+                      <span class="ruler-mark"></span>
+                      <span class="ruler-mark"></span>
+                      <span class="ruler-mark"></span>
+                    </div>
                     <div class="ink-fill-column ink-cyan" id="inkCyanBar" style="height: 0%;"></div>
                   </div>
-                  <div class="ink-label-title">C (Cyan)</div>
+                  <div class="ink-label-title"><span class="tank-dot dot-cyan"></span>C (Cyan)</div>
                   <div class="ink-pct-val" id="inkCyanVal">--%</div>
                 </div>
 
                 <div class="ink-tank-card">
                   <div class="ink-tank-glass">
+                    <div class="tank-ruler-marks">
+                      <span class="ruler-mark"></span>
+                      <span class="ruler-mark"></span>
+                      <span class="ruler-mark"></span>
+                    </div>
                     <div class="ink-fill-column ink-magenta" id="inkMagentaBar" style="height: 0%;"></div>
                   </div>
-                  <div class="ink-label-title">M (Magenta)</div>
+                  <div class="ink-label-title"><span class="tank-dot dot-magenta"></span>M (Magenta)</div>
                   <div class="ink-pct-val" id="inkMagentaVal">--%</div>
                 </div>
 
                 <div class="ink-tank-card">
                   <div class="ink-tank-glass">
+                    <div class="tank-ruler-marks">
+                      <span class="ruler-mark"></span>
+                      <span class="ruler-mark"></span>
+                      <span class="ruler-mark"></span>
+                    </div>
                     <div class="ink-fill-column ink-yellow" id="inkYellowBar" style="height: 0%;"></div>
                   </div>
-                  <div class="ink-label-title">Y (Yellow)</div>
+                  <div class="ink-label-title"><span class="tank-dot dot-yellow"></span>Y (Yellow)</div>
                   <div class="ink-pct-val" id="inkYellowVal">--%</div>
                 </div>
               </div>
@@ -303,19 +418,55 @@
               <!-- Lifetime Hardware Counters -->
               <div class="lifetime-stats-grid">
                 <div class="stat-item">
-                  <span class="stat-label">Total Printed Pages</span>
+                  <div class="stat-top">
+                    <div class="stat-icon-mini">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                      </svg>
+                    </div>
+                    <span class="stat-label">Total Printed Pages</span>
+                  </div>
                   <strong id="statTotalPages" class="stat-value">--</strong>
                 </div>
+
                 <div class="stat-item">
-                  <span class="stat-label">B/W / Color Split</span>
+                  <div class="stat-top">
+                    <div class="stat-icon-mini cyan">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 2a10 10 0 0 1 10 10H12V2z"></path>
+                      </svg>
+                    </div>
+                    <span class="stat-label">B/W / Color Split</span>
+                  </div>
                   <strong id="statColorSplit" class="stat-value stat-cyan">-- / --</strong>
                 </div>
+
                 <div class="stat-item">
-                  <span class="stat-label">Scanner Scan Count</span>
+                  <div class="stat-top">
+                    <div class="stat-icon-mini">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                      </svg>
+                    </div>
+                    <span class="stat-label">Scanner Scan Count</span>
+                  </div>
                   <strong id="statScanCount" class="stat-value">--</strong>
                 </div>
+
                 <div class="stat-item">
-                  <span class="stat-label">Head Clean Cycles</span>
+                  <div class="stat-top">
+                    <div class="stat-icon-mini emerald">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+                      </svg>
+                    </div>
+                    <span class="stat-label">Head Clean Cycles</span>
+                  </div>
                   <strong id="statCleaningCount" class="stat-value stat-emerald">--</strong>
                 </div>
               </div>
@@ -331,7 +482,11 @@
           <div class="glass-card" style="margin-bottom: 24px;">
             <div class="card-header">
               <div class="card-title">
-                <span class="card-title-icon">🛠️</span>
+                <div class="card-icon-badge">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                  </svg>
+                </div>
                 <span>Printhead Cleaning & Purge Cycles</span>
               </div>
               <span class="badge-tag">CH Command Framing</span>
@@ -343,39 +498,115 @@
 
             <div class="cleaning-cards-grid">
               <div class="glass-card cleaning-card">
-                <h4>Routine Light Clean</h4>
-                <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 14px;">Quick acoustic micro-pulse wiper cycle for minor streaks. Duration: ~140s.</p>
-                <button class="btn btn-secondary btn-block" onclick="startCleaning('light')">Start Light Clean</button>
+                <div>
+                  <div class="cleaning-card-top">
+                    <div class="tool-icon-circle blue">
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"></path>
+                      </svg>
+                    </div>
+                    <span class="duration-pill">~140s</span>
+                  </div>
+                  <h4>Routine Light Clean</h4>
+                  <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 16px;">Quick acoustic micro-pulse wiper cycle for minor streaks.</p>
+                </div>
+                <button class="btn btn-secondary btn-block" onclick="startCleaning('light')">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                  <span>Start Light Clean</span>
+                </button>
               </div>
 
               <div class="glass-card cleaning-card">
-                <h4>Medium Deep Clean</h4>
-                <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 14px;">Standard intensive suction cycle for missing color bands. Duration: ~180s.</p>
-                <button class="btn btn-secondary btn-block" onclick="startCleaning('medium')">Start Deep Clean</button>
+                <div>
+                  <div class="cleaning-card-top">
+                    <div class="tool-icon-circle cyan">
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+                      </svg>
+                    </div>
+                    <span class="duration-pill">~180s</span>
+                  </div>
+                  <h4>Medium Deep Clean</h4>
+                  <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 16px;">Standard intensive suction cycle for missing color bands.</p>
+                </div>
+                <button class="btn btn-secondary btn-block" onclick="startCleaning('medium')">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                  <span>Start Deep Clean</span>
+                </button>
               </div>
 
               <div class="glass-card cleaning-card">
-                <h4>Intensive Ultrasonic Purge</h4>
-                <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 14px;">High-pressure piezo pulse for stubborn nozzle clogs. Duration: ~220s.</p>
-                <button class="btn btn-secondary btn-block" onclick="startCleaning('strong')">Start Ultrasonic</button>
+                <div>
+                  <div class="cleaning-card-top">
+                    <div class="tool-icon-circle violet">
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+                      </svg>
+                    </div>
+                    <span class="duration-pill">~220s</span>
+                  </div>
+                  <h4>Intensive Ultrasonic Purge</h4>
+                  <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 16px;">High-pressure piezo pulse for stubborn nozzle clogs.</p>
+                </div>
+                <button class="btn btn-secondary btn-block" onclick="startCleaning('strong')">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                  <span>Start Ultrasonic</span>
+                </button>
               </div>
 
               <div class="glass-card cleaning-card">
-                <h4>Heavy Power Ink Flush</h4>
-                <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 14px;">Full ink recharge cycle across all dampers and tubes. Duration: ~360s.</p>
-                <button class="btn btn-primary btn-block" onclick="startCleaning('power_flush')">Start Power Flush</button>
+                <div>
+                  <div class="cleaning-card-top">
+                    <div class="tool-icon-circle rose">
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"></path>
+                        <path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"></path>
+                        <path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"></path>
+                      </svg>
+                    </div>
+                    <span class="duration-pill rose">~360s</span>
+                  </div>
+                  <h4>Heavy Power Ink Flush</h4>
+                  <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 16px;">Full ink recharge cycle across all dampers and tubes.</p>
+                </div>
+                <button class="btn btn-primary btn-block" onclick="startCleaning('power_flush')">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                  <span>Start Power Flush</span>
+                </button>
               </div>
             </div>
 
             <div class="maintenance-action-row">
               <button class="btn btn-secondary" onclick="startAirBleed()">
-                🌀 EcoTank Ink Tube Air Bleed & Damper Charge
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 6L6 18M9 4l11 11M14 2l8 8M3 21l3-3"></path>
+                </svg>
+                <span>EcoTank Air Bleed & Damper Charge</span>
               </button>
               <button class="btn btn-primary" onclick="printNozzleCheck(false)">
-                🖨️ Print Regular Nozzle Check Pattern (Original Format)
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                <span>Print Regular Nozzle Check Pattern (Original Format)</span>
               </button>
               <button class="btn btn-secondary" onclick="printNozzleCheck(true)">
-                📄 Print High-Res Raster Test
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+                <span>Print High-Res Raster Test</span>
               </button>
             </div>
           </div>
@@ -384,7 +615,12 @@
           <div class="glass-card">
             <div class="card-header">
               <div class="card-title">
-                <span class="card-title-icon">📄</span>
+                <div class="card-icon-badge">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                  </svg>
+                </div>
                 <span>Mechanical & Paper Path Maintenance</span>
               </div>
               <span class="badge-tag">Roller & Motor Direct Control</span>
@@ -398,7 +634,14 @@
               <div class="mech-card">
                 <div>
                   <div class="mech-card-header">
-                    <span class="mech-icon">📄</span>
+                    <div class="mech-icon-box">
+                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="12" y1="18" x2="12" y2="12"></line>
+                        <line x1="9" y1="15" x2="15" y2="15"></line>
+                      </svg>
+                    </div>
                     <div class="mech-title">Paper Feed & Eject Test</div>
                   </div>
                   <div class="mech-desc">Feeds a single sheet through the paper path and checks pickup sensor response.</div>
@@ -409,7 +652,13 @@
               <div class="mech-card">
                 <div>
                   <div class="mech-card-header">
-                    <span class="mech-icon">🔄</span>
+                    <div class="mech-icon-box">
+                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"></path>
+                        <path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path>
+                      </svg>
+                    </div>
                     <div class="mech-title">Pickup Roller Cleaning</div>
                   </div>
                   <div class="mech-desc">Executes 3-cycle multi-speed roller friction spin to remove accumulated paper dust.</div>
@@ -420,7 +669,15 @@
               <div class="mech-card">
                 <div>
                   <div class="mech-card-header">
-                    <span class="mech-icon">📏</span>
+                    <div class="mech-icon-box">
+                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="22" y1="12" x2="18" y2="12"></line>
+                        <line x1="6" y1="12" x2="2" y2="12"></line>
+                        <line x1="12" y1="6" x2="12" y2="2"></line>
+                        <line x1="12" y1="22" x2="12" y2="18"></line>
+                      </svg>
+                    </div>
                     <div class="mech-title">Bidirectional Head Alignment</div>
                   </div>
                   <div class="mech-desc">Prints 7-stage alignment calibration patterns to inspect vertical line straightness.</div>
@@ -431,7 +688,15 @@
               <div class="mech-card">
                 <div>
                   <div class="mech-card-header">
-                    <span class="mech-icon">📊</span>
+                    <div class="mech-icon-box">
+                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle>
+                        <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle>
+                        <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle>
+                        <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle>
+                        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2z"></path>
+                      </svg>
+                    </div>
                     <div class="mech-title">Full CMYK Calibration Page</div>
                   </div>
                   <div class="mech-desc">Prints full-coverage diagnostic color bars, halftone ramps, and lifetime hardware counters.</div>
@@ -450,11 +715,19 @@
           <div class="glass-card" style="margin-bottom: 24px;">
             <div class="card-header">
               <div class="card-title">
-                <span class="card-title-icon">🩺</span>
+                <div class="card-icon-badge">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                  </svg>
+                </div>
                 <span>Windows Spooler & Hardware Doctor</span>
               </div>
               <button class="btn btn-primary" onclick="runHardwareDiagnostics()">
-                🔍 Run Complete Diagnostic Scan
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <span>Run Complete Diagnostic Scan</span>
               </button>
             </div>
 
@@ -464,21 +737,32 @@
 
             <div class="doctor-scan-header" id="doctorSummaryBanner">
               <div style="display: flex; align-items: center; gap: 14px;">
-                <span style="font-size: 32px;" id="doctorStatusIcon">🩺</span>
+                <div class="doctor-pulse-badge" id="doctorStatusIcon">
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                  </svg>
+                </div>
                 <div>
                   <h3 style="color: var(--text-main); font-size: 17px; margin-bottom: 4px;" id="doctorSummaryTitle">Diagnostic System Ready</h3>
                   <p style="font-size: 12.5px; color: var(--text-muted);" id="doctorSummaryDesc">Click "Run Complete Diagnostic Scan" to perform a real-time health verification.</p>
                 </div>
               </div>
               <button class="btn btn-secondary" onclick="repairSpoolerService()">
-                ⚡ 1-Click Spooler Service Repair
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+                <span>1-Click Spooler Service Repair</span>
               </button>
             </div>
 
             <div class="doctor-checks-grid" id="doctorChecksList">
               <div class="check-item-card">
                 <div class="check-item-left">
-                  <span class="check-status-icon">🔌</span>
+                  <div class="check-status-badge">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 2v6M6 8h12M6 8v5a6 6 0 0 0 12 0V8M12 19v3"></path>
+                    </svg>
+                  </div>
                   <div>
                     <div class="check-item-name">Physical USB Connection</div>
                     <div class="check-item-msg">Checks if Windows SetupAPI DIGCF_PRESENT detects printer hardware on USBPRINT class.</div>
@@ -489,7 +773,12 @@
 
               <div class="check-item-card">
                 <div class="check-item-left">
-                  <span class="check-status-icon">⚙️</span>
+                  <div class="check-status-badge">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="3"></circle>
+                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                  </div>
                   <div>
                     <div class="check-item-name">Windows Print Spooler (spoolsv.exe)</div>
                     <div class="check-item-msg">Validates spooler service status and inspects PRINTERS directory for corrupted shadow files.</div>
@@ -500,7 +789,11 @@
 
               <div class="check-item-card">
                 <div class="check-item-left">
-                  <span class="check-status-icon">📡</span>
+                  <div class="check-status-badge">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5M12 12h.01M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5M19.1 4.9c3.9 3.9 3.9 10.3 0 14.2"></path>
+                    </svg>
+                  </div>
                   <div>
                     <div class="check-item-name">ESC/P-R Firmware Handshake</div>
                     <div class="check-item-msg">Tests bidirectional communication with printer CPU and queries @BDC ST2 status.</div>
@@ -511,30 +804,38 @@
             </div>
 
             <!-- Troubleshooting Matrix Accordion -->
-            <h4 style="color: var(--text-main); font-size: 15px; margin: 24px 0 14px 0;">⚡ Quick Troubleshooting Solutions</h4>
+            <div style="display: flex; align-items: center; gap: 8px; margin: 26px 0 14px 0;">
+              <div class="card-icon-badge" style="width: 26px; height: 26px;">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"></path>
+                </svg>
+              </div>
+              <h4 style="color: var(--text-main); font-size: 15px; font-weight: 700;">Quick Troubleshooting Solutions</h4>
+            </div>
+
             <div style="display: flex; flex-direction: column; gap: 10px;">
-              <div style="padding: 14px 18px; border-radius: var(--radius-sm); background: #ffffff; border: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; box-shadow: var(--shadow-xs);">
+              <div class="troubleshoot-row">
                 <div>
                   <strong style="color: var(--text-main); font-size: 13.5px;">Error 20000010: Communication Error</strong>
                   <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Printer is turned off, cable loose, or Windows spooler queue is blocked with pending jobs.</div>
                 </div>
-                <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;" onclick="repairSpoolerService()">Repair Spooler & Clear Queue</button>
+                <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 14px;" onclick="repairSpoolerService()">Repair Spooler & Clear Queue</button>
               </div>
 
-              <div style="padding: 14px 18px; border-radius: var(--radius-sm); background: #ffffff; border: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; box-shadow: var(--shadow-xs);">
+              <div class="troubleshoot-row">
                 <div>
                   <strong style="color: var(--text-main); font-size: 13.5px;">Missing Colors / Blank Pages After Inking</strong>
                   <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Air trapped inside EcoTank silicon tubes preventing ink from reaching damper cavities.</div>
                 </div>
-                <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;" onclick="startAirBleed()">Run EcoTank Air Bleed</button>
+                <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 14px;" onclick="startAirBleed()">Run EcoTank Air Bleed</button>
               </div>
 
-              <div style="padding: 14px 18px; border-radius: var(--radius-sm); background: #ffffff; border: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; box-shadow: var(--shadow-xs);">
+              <div class="troubleshoot-row">
                 <div>
                   <strong style="color: var(--text-main); font-size: 13.5px;">Paper Feed Slipping / Blinking Paper LED</strong>
                   <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Rubber pickup roller has accumulated micro-fine paper dust causing traction loss.</div>
                 </div>
-                <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;" onclick="cleanRoller()">Clean Pickup Rollers</button>
+                <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 14px;" onclick="cleanRoller()">Clean Pickup Rollers</button>
               </div>
             </div>
           </div>
@@ -547,14 +848,26 @@
           <div class="glass-card">
             <div class="card-header">
               <div class="card-title">
-                <span class="card-title-icon">📚</span>
+                <div class="card-icon-badge">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                    <polyline points="2 17 12 22 22 17"></polyline>
+                    <polyline points="2 12 12 17 22 12"></polyline>
+                  </svg>
+                </div>
                 <span>Supported Epson Models Catalog</span>
               </div>
               <span class="badge-tag success" id="modelsTotalCount">234 Models Calibrated</span>
             </div>
 
             <div class="model-search-bar">
-              <input type="text" id="modelSearchInput" class="search-input" placeholder="Search by model name or series (e.g. L3250, L3210, ET-2800, WF-7710, XP-15000)...">
+              <div class="search-input-wrap">
+                <svg viewBox="0 0 24 24" class="search-glass-svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="modelSearchInput" class="search-input" placeholder="Search by model name or series (e.g. L3250, L3210, ET-2800, WF-7710, XP-15000)...">
+              </div>
             </div>
 
             <div class="model-family-chips">
@@ -579,11 +892,28 @@
           <div class="glass-card">
             <div class="card-header">
               <div class="card-title">
-                <span class="card-title-icon">💾</span>
+                <div class="card-icon-badge">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                    <rect x="9" y="9" width="6" height="6"></rect>
+                    <line x1="9" y1="1" x2="9" y2="4"></line>
+                    <line x1="15" y1="1" x2="15" y2="4"></line>
+                    <line x1="9" y1="20" x2="9" y2="23"></line>
+                    <line x1="15" y1="20" x2="15" y2="23"></line>
+                    <line x1="20" y1="9" x2="23" y2="9"></line>
+                    <line x1="20" y1="14" x2="23" y2="14"></line>
+                    <line x1="1" y1="9" x2="4" y2="9"></line>
+                    <line x1="1" y1="14" x2="4" y2="14"></line>
+                  </svg>
+                </div>
                 <span>NVRAM EEPROM Safety Vault & Rollback</span>
               </div>
               <button class="btn btn-primary" onclick="createManualBackup()">
-                ➕ Create Manual Snapshot
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>Create Manual Snapshot</span>
               </button>
             </div>
 
@@ -605,11 +935,21 @@
           <div class="glass-card">
             <div class="card-header">
               <div class="card-title">
-                <span class="card-title-icon">📜</span>
+                <div class="card-icon-badge">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="8" r="6"></circle>
+                    <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+                  </svg>
+                </div>
                 <span>Technician Maintenance Certificate</span>
               </div>
               <button class="btn btn-primary" onclick="window.print()">
-                🖨️ Print Certificate
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                <span>Print Certificate</span>
               </button>
             </div>
 
@@ -692,7 +1032,13 @@
   <div class="modal-backdrop" id="commErrorModal">
     <div class="modal-box" style="border: 1px solid var(--accent-rose); width: 480px;">
       <div style="display: flex; align-items: flex-start; gap: 16px; margin-bottom: 16px;">
-        <span style="font-size: 36px; line-height: 1;">⚠️</span>
+        <div class="modal-icon-badge error">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </div>
         <div>
           <h3 style="color: var(--accent-rose); font-size: 18px; font-weight: 700;">Communication Error!</h3>
           <div style="font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); margin-top: 2px;">Error Code: 20000010</div>
@@ -717,7 +1063,12 @@
        =================================================================== -->
   <div class="modal-backdrop" id="turnOffPrinterModal">
     <div class="modal-box" style="text-align: center; width: 480px;">
-      <span style="font-size: 52px; display: block; margin-bottom: 14px;">🔌</span>
+      <div class="modal-icon-badge power" style="margin: 0 auto 16px auto;">
+        <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+          <line x1="12" y1="2" x2="12" y2="12"></line>
+        </svg>
+      </div>
       <h3 style="color: var(--text-main); font-size: 20px; font-weight: 800; margin-bottom: 10px;">
         Please turn off the printer.
       </h3>
@@ -737,9 +1088,16 @@
        =================================================================== -->
   <div class="modal-backdrop" id="initConfirmModal">
     <div class="modal-box" style="width: 480px;">
-      <h3 style="color: var(--text-main); font-size: 18px; font-weight: 800; margin-bottom: 10px;">
-        ⚡ Confirm Initialization
-      </h3>
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+        <div class="modal-icon-badge warning">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+        </div>
+        <h3 style="color: var(--text-main); font-size: 18px; font-weight: 800;">
+          Confirm Initialization
+        </h3>
+      </div>
       <p style="color: var(--text-main); font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
         When the OK button is clicked, initialization is done.<br><br>
         Selected counters will be reset to <strong>0% (0 points)</strong> for <strong id="initConfirmTarget" style="color: var(--accent-cyan);">Epson Printer</strong>.
