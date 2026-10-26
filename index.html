@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trel- Epson Universal Tool - Universal Maintenance & EEPROM Reset</title>
+  <meta name="description" content="Professional standalone Epson maintenance, diagnostic telemetry, and waste ink pad reset utility for 234 printer models.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/Logo.png">
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+
+  <!-- Ambient Glowing Background Orbs -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="ambient-glow glow-3"></div>
+
+  <!-- SVG Linear Gradients Definition -->
+  <svg style="position: absolute; width: 0; height: 0; overflow: hidden;" version="1.1" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#0284c7" />
+        <stop offset="55%" stop-color="#059669" />
+        <stop offset="85%" stop-color="#d97706" />
+        <stop offset="100%" stop-color="#e11d48" />
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <div class="app-container">
+
+    <!-- Mobile Sidebar Backdrop Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- ===================================================================
+         SIDEBAR NAVIGATION
+         =================================================================== -->
+    <aside class="sidebar" id="appSidebar">
+      <div>
+        <div class="brand-section">
+          <div class="brand-logo-badge">
+            <img src="/Logo.png" alt="Trel- Epson Tool Logo" class="brand-logo-img">
+          </div>
+          <div class="brand-text-block">
+            <div class="brand-title">Trel- Epson Tool</div>
+            <div class="brand-subtitle">Universal Core v3.0</div>
+          </div>
+          <button class="btn-icon sidebar-close-btn" id="btnCloseSidebar" title="Close Menu" aria-label="Close Menu">✕</button>
+        </div>
+
+        <nav class="nav-menu">
+          <div class="nav-item active" data-tab="reset">
+            <span class="nav-icon">⚡</span>
+            <span>Waste Pad Reset</span>
+          </div>
+          <div class="nav-item" data-tab="maintenance">
+            <span class="nav-icon">🛠️</span>
+            <span>Printhead & Mechanical</span>
+          </div>
+          <div class="nav-item" data-tab="doctor">
+            <span class="nav-icon">🩺</span>
+            <span>Spooler & Hardware Doctor</span>
+          </div>
+          <div class="nav-item" data-tab="models">
+            <span class="nav-icon">📚</span>
+            <span>Model Catalog</span>
+            <span class="nav-badge" id="badgeModelsCount">234</span>
+          </div>
+          <div class="nav-item" data-tab="vault">
+            <span class="nav-icon">💾</span>
+            <span>NVRAM Vault</span>
+          </div>
+          <div class="nav-item" data-tab="certificate">
+            <span class="nav-icon">📜</span>
+            <span>Service Certificate</span>
+          </div>
+        </nav>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="engine-pill">Engine: ESC/P-R Remote1 (0x0797)</div>
+        <div class="engine-pill" style="color: var(--accent-emerald);">Windows Native Spooler Engine</div>
+      </div>
+    </aside>
+
+    <!-- ===================================================================
+         MAIN VIEWPORT
+         =================================================================== -->
+    <main class="main-viewport">
+
+      <!-- TOP HEADER -->
+      <header class="top-header">
+        <div class="header-left">
+          <!-- Mobile Sidebar Toggle -->
+          <button class="btn-icon hamburger-btn" id="btnToggleSidebar" title="Toggle Navigation Menu" aria-label="Toggle navigation">
+            <span class="hamburger-icon">☰</span>
+          </button>
+
+          <!-- Mobile Brand Title (visible only on small screens) -->
+          <div class="mobile-brand-title">
+            <span class="mobile-brand-icon">⚡</span>
+            <span>Trel- Epson</span>
+          </div>
+
+          <!-- Connection Status Pill -->
+          <div class="usb-detector-pill" id="usbStatusPill">
+            <div class="led-pulse" id="usbLed" style="background-color: var(--text-subtle); box-shadow: none;"></div>
+            <div class="usb-pill-text">
+              <span id="usbStatusText" class="usb-subtext">Hardware Detection</span>
+              <strong id="usbDeviceName" class="usb-maintext">No Printer Connected</strong>
+            </div>
+          </div>
+
+          <div class="header-model-badge-row">
+            <span class="model-badge-label">Model:</span>
+            <strong id="activeModelBadge" class="model-badge-val">L3250</strong>
+            <span id="activePortBadge" class="port-badge-tag">Auto selection</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- Live Real Hardware Mode Indicator (Demo removed) -->
+          <div class="live-hardware-badge" title="Strict Hardware Mode: Direct USB / Windows Native Spooler">
+            <span class="live-dot"></span>
+            <span>Strict Hardware Mode</span>
+          </div>
+          <div class="printer-select-wrapper">
+            <select id="printerSelect" class="printer-select" title="Target Installed Windows Printer Port">
+              <option value="">Auto Selection (Scanning...)</option>
+            </select>
+          </div>
+          <div class="header-actions-group">
+            <button class="btn-icon" id="btnRefreshPrinters" title="Re-scan USB & Hardware Ports">🔄</button>
+            <button class="btn-icon" id="btnPurgeSpooler" title="Purge Stuck Print Spooler Queue">⚡</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- CONTENT BODY -->
+      <div class="content-body">
+
+        <!-- =============================================================
+             TAB 1: WASTE PAD RESET & DIAGNOSTICS (AUTHENTIC ADJPROG WORKFLOW)
+             ============================================================= -->
+        <div class="tab-pane active" id="tab-reset">
+
+          <!-- Real-Time Hardware Diagnostic Telemetry Banner -->
+          <div class="diagnostic-banner" id="diagBanner">
+            <div class="diag-left">
+              <span class="diag-icon" id="diagIcon">🔌</span>
+              <div>
+                <div class="diag-headline" id="diagTitle">No Physical Epson Printer Detected</div>
+                <div class="diag-subline" id="diagDesc">Connect your Epson printer via USB cable and turn power ON to read or reset counters.</div>
+              </div>
+            </div>
+            <button class="btn btn-secondary" id="btnQuickPurge" style="font-size: 12px; padding: 6px 12px;">
+              ⚡ Purge Spooler Queue
+            </button>
+          </div>
+
+          <!-- Main Dashboard Grid -->
+          <div class="grid-dashboard">
+
+            <!-- Card 1: Authentic Waste Ink Pad Counter Card -->
+            <div class="glass-card">
+              <div class="card-header">
+                <div class="card-title">
+                  <span class="card-title-icon">⚡</span>
+                  <span>Waste Ink Pad Counter</span>
+                </div>
+                <span class="badge-tag" id="counterStatusBadge">NOT READ</span>
+              </div>
+
+              <!-- Radial Gauge -->
+              <div class="gauge-center-wrapper">
+                <div class="radial-gauge-container">
+                  <svg class="radial-svg" viewBox="0 0 200 200">
+                    <circle class="gauge-track" cx="100" cy="100" r="80"></circle>
+                    <circle class="gauge-fill" id="radialGaugeCircle" cx="100" cy="100" r="80"
+                      stroke-dasharray="502.65" stroke-dashoffset="502.65"></circle>
+                  </svg>
+                  <div class="gauge-inner-content">
+                    <div class="gauge-value" id="radialGaugeValue">--%</div>
+                    <div class="gauge-label">Main Waste Pad</div>
+                    <div class="gauge-subpoints" id="radialGaugePoints">-- / 6,346 pts</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Authentic AdjProg Checkboxes & Progress (Main, Platen, Ink System) -->
+              <div class="sub-counters-container">
+                <!-- Counter 1: Main pad counter -->
+                <div class="sub-counter-row">
+                  <div class="sub-counter-info">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-main);">
+                      <input type="checkbox" id="chkMainPad" checked style="width: 16px; height: 16px; accent-color: var(--accent-cyan); cursor: pointer;">
+                      <span>Main pad counter</span>
+                    </label>
+                    <div style="text-align: right; display: flex; align-items: baseline; gap: 6px;">
+                      <strong id="mainCounterVal" style="color: var(--text-main); font-family: var(--font-mono); font-size: 13px;">-- pts (--%)</strong>
+                      <span id="mainCounterMax" style="color: var(--text-muted); font-size: 11px;">Max: 6,346 pts</span>
+                    </div>
+                  </div>
+                  <div class="sub-counter-bar">
+                    <div class="sub-counter-fill" id="mainCounterBar" style="width: 0%;"></div>
+                  </div>
+                </div>
+
+                <!-- Counter 2: Platen pad counter -->
+                <div class="sub-counter-row">
+                  <div class="sub-counter-info">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-main);">
+                      <input type="checkbox" id="chkPlatenPad" style="width: 16px; height: 16px; accent-color: var(--accent-cyan); cursor: pointer;">
+                      <span>Platen pad counter</span>
+                    </label>
+                    <div style="text-align: right; display: flex; align-items: baseline; gap: 6px;">
+                      <strong id="platenCounterVal" style="color: var(--text-main); font-family: var(--font-mono); font-size: 13px;">-- pts (--%)</strong>
+                      <span id="platenCounterMax" style="color: var(--text-muted); font-size: 11px;">Max: 3,416 pts</span>
+                    </div>
+                  </div>
+                  <div class="sub-counter-bar">
+                    <div class="sub-counter-fill" id="platenCounterBar" style="width: 0%;"></div>
+                  </div>
+                </div>
+
+                <!-- Counter 3: Ink System pad counter -->
+                <div class="sub-counter-row">
+                  <div class="sub-counter-info">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-main);">
+                      <input type="checkbox" id="chkInkSystemPad" style="width: 16px; height: 16px; accent-color: var(--accent-cyan); cursor: pointer;">
+                      <span>Ink System pad counter</span>
+                    </label>
+                    <div style="text-align: right; display: flex; align-items: baseline; gap: 6px;">
+                      <strong id="inkSystemCounterVal" style="color: var(--text-main); font-family: var(--font-mono); font-size: 13px;">-- pts (--%)</strong>
+                      <span id="inkSystemCounterMax" style="color: var(--text-muted); font-size: 11px;">Max: 1,300 pts</span>
+                    </div>
+                  </div>
+                  <div class="sub-counter-bar">
+                    <div class="sub-counter-fill" id="inkSystemCounterBar" style="width: 0%;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Authentic AdjProg Action Buttons: [Check] and [Initialize] -->
+              <div class="counter-action-grid">
+                <button class="btn btn-secondary btn-check-action" id="btnCheckCounters" title="Send factory read packet to query current counter registers">
+                  🔍 Check (Read)
+                </button>
+                <button class="btn btn-danger btn-reset-action" id="btnOpenResetModal" title="Reset selected waste counters to 0%">
+                  ⚡ Initialize (Reset 0%)
+                </button>
+              </div>
+            </div>
+
+            <!-- Card 2: Ink Tanks & Hardware Telemetry -->
+            <div class="glass-card">
+              <div class="card-header">
+                <div class="card-title">
+                  <span class="card-title-icon">💧</span>
+                  <span>Ink Cartridges / Tanks</span>
+                </div>
+                <span class="badge-tag" id="inkStatusBadge">Awaiting Connection</span>
+              </div>
+
+              <!-- 4 Ink Tanks (CMYK) -->
+              <div class="ink-tanks-container">
+                <div class="ink-tank-card">
+                  <div class="ink-tank-glass">
+                    <div class="ink-fill-column ink-black" id="inkBlackBar" style="height: 0%;"></div>
+                  </div>
+                  <div class="ink-label-title">BK (Black)</div>
+                  <div class="ink-pct-val" id="inkBlackVal">--%</div>
+                </div>
+
+                <div class="ink-tank-card">
+                  <div class="ink-tank-glass">
+                    <div class="ink-fill-column ink-cyan" id="inkCyanBar" style="height: 0%;"></div>
+                  </div>
+                  <div class="ink-label-title">C (Cyan)</div>
+                  <div class="ink-pct-val" id="inkCyanVal">--%</div>
+                </div>
+
+                <div class="ink-tank-card">
+                  <div class="ink-tank-glass">
+                    <div class="ink-fill-column ink-magenta" id="inkMagentaBar" style="height: 0%;"></div>
+                  </div>
+                  <div class="ink-label-title">M (Magenta)</div>
+                  <div class="ink-pct-val" id="inkMagentaVal">--%</div>
+                </div>
+
+                <div class="ink-tank-card">
+                  <div class="ink-tank-glass">
+                    <div class="ink-fill-column ink-yellow" id="inkYellowBar" style="height: 0%;"></div>
+                  </div>
+                  <div class="ink-label-title">Y (Yellow)</div>
+                  <div class="ink-pct-val" id="inkYellowVal">--%</div>
+                </div>
+              </div>
+
+              <!-- Lifetime Hardware Counters -->
+              <div class="lifetime-stats-grid">
+                <div class="stat-item">
+                  <span class="stat-label">Total Printed Pages</span>
+                  <strong id="statTotalPages" class="stat-value">--</strong>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">B/W / Color Split</span>
+                  <strong id="statColorSplit" class="stat-value stat-cyan">-- / --</strong>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Scanner Scan Count</span>
+                  <strong id="statScanCount" class="stat-value">--</strong>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Head Clean Cycles</span>
+                  <strong id="statCleaningCount" class="stat-value stat-emerald">--</strong>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- =============================================================
+             TAB 2: PRINTHEAD MAINTENANCE & NOZZLE CHECK
+             ============================================================= -->
+        <div class="tab-pane" id="tab-maintenance">
+          <div class="glass-card" style="margin-bottom: 24px;">
+            <div class="card-header">
+              <div class="card-title">
+                <span class="card-title-icon">🛠️</span>
+                <span>Printhead Cleaning & Purge Cycles</span>
+              </div>
+              <span class="badge-tag">CH Command Framing</span>
+            </div>
+
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">
+              Sends direct ESC/P-R Remote1 maintenance sequences with Job Start (JS), Clean Head (CH), and Job End (JE) commit to activate the physical peristaltic pump motor.
+            </p>
+
+            <div class="cleaning-cards-grid">
+              <div class="glass-card cleaning-card">
+                <h4>Routine Light Clean</h4>
+                <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 14px;">Quick acoustic micro-pulse wiper cycle for minor streaks. Duration: ~140s.</p>
+                <button class="btn btn-secondary btn-block" onclick="startCleaning('light')">Start Light Clean</button>
+              </div>
+
+              <div class="glass-card cleaning-card">
+                <h4>Medium Deep Clean</h4>
+                <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 14px;">Standard intensive suction cycle for missing color bands. Duration: ~180s.</p>
+                <button class="btn btn-secondary btn-block" onclick="startCleaning('medium')">Start Deep Clean</button>
+              </div>
+
+              <div class="glass-card cleaning-card">
+                <h4>Intensive Ultrasonic Purge</h4>
+                <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 14px;">High-pressure piezo pulse for stubborn nozzle clogs. Duration: ~220s.</p>
+                <button class="btn btn-secondary btn-block" onclick="startCleaning('strong')">Start Ultrasonic</button>
+              </div>
+
+              <div class="glass-card cleaning-card">
+                <h4>Heavy Power Ink Flush</h4>
+                <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 14px;">Full ink recharge cycle across all dampers and tubes. Duration: ~360s.</p>
+                <button class="btn btn-primary btn-block" onclick="startCleaning('power_flush')">Start Power Flush</button>
+              </div>
+            </div>
+
+            <div class="maintenance-action-row">
+              <button class="btn btn-secondary" onclick="startAirBleed()">
+                🌀 EcoTank Ink Tube Air Bleed & Damper Charge
+              </button>
+              <button class="btn btn-primary" onclick="printNozzleCheck(false)">
+                🖨️ Print Regular Nozzle Check Pattern (Original Format)
+              </button>
+              <button class="btn btn-secondary" onclick="printNozzleCheck(true)">
+                📄 Print High-Res Raster Test
+              </button>
+            </div>
+          </div>
+
+          <!-- Mechanical & Paper Path Maintenance Card -->
+          <div class="glass-card">
+            <div class="card-header">
+              <div class="card-title">
+                <span class="card-title-icon">📄</span>
+                <span>Mechanical & Paper Path Maintenance</span>
+              </div>
+              <span class="badge-tag">Roller & Motor Direct Control</span>
+            </div>
+
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
+              Direct hardware motor tests to verify paper feed mechanics, clear false paper jams, dust off pickup rollers, and calibrate bidirectional printhead alignment.
+            </p>
+
+            <div class="mechanical-grid">
+              <div class="mech-card">
+                <div>
+                  <div class="mech-card-header">
+                    <span class="mech-icon">📄</span>
+                    <div class="mech-title">Paper Feed & Eject Test</div>
+                  </div>
+                  <div class="mech-desc">Feeds a single sheet through the paper path and checks pickup sensor response.</div>
+                </div>
+                <button class="btn btn-secondary btn-block" onclick="feedPaper()">Run Paper Feed Test</button>
+              </div>
+
+              <div class="mech-card">
+                <div>
+                  <div class="mech-card-header">
+                    <span class="mech-icon">🔄</span>
+                    <div class="mech-title">Pickup Roller Cleaning</div>
+                  </div>
+                  <div class="mech-desc">Executes 3-cycle multi-speed roller friction spin to remove accumulated paper dust.</div>
+                </div>
+                <button class="btn btn-secondary btn-block" onclick="cleanRoller()">Start Roller Clean</button>
+              </div>
+
+              <div class="mech-card">
+                <div>
+                  <div class="mech-card-header">
+                    <span class="mech-icon">📏</span>
+                    <div class="mech-title">Bidirectional Head Alignment</div>
+                  </div>
+                  <div class="mech-desc">Prints 7-stage alignment calibration patterns to inspect vertical line straightness.</div>
+                </div>
+                <button class="btn btn-secondary btn-block" onclick="printAlignmentSheet()">Print Alignment Pattern</button>
+              </div>
+
+              <div class="mech-card">
+                <div>
+                  <div class="mech-card-header">
+                    <span class="mech-icon">📊</span>
+                    <div class="mech-title">Full CMYK Calibration Page</div>
+                  </div>
+                  <div class="mech-desc">Prints full-coverage diagnostic color bars, halftone ramps, and lifetime hardware counters.</div>
+                </div>
+                <button class="btn btn-primary btn-block" onclick="printDiagnosticSheet()">Print Diagnostic Test Sheet</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- =============================================================
+             TAB 4: SPOOLER & HARDWARE DOCTOR
+             ============================================================= -->
+        <div class="tab-pane" id="tab-doctor">
+          <div class="glass-card" style="margin-bottom: 24px;">
+            <div class="card-header">
+              <div class="card-title">
+                <span class="card-title-icon">🩺</span>
+                <span>Windows Spooler & Hardware Doctor</span>
+              </div>
+              <button class="btn btn-primary" onclick="runHardwareDiagnostics()">
+                🔍 Run Complete Diagnostic Scan
+              </button>
+            </div>
+
+            <p style="color: var(--text-muted); font-size: 13.5px; margin-bottom: 20px;">
+              Scans Windows Print Spooler service health, active print queue buffers, USB connection integrity, and bidirectional firmware readiness.
+            </p>
+
+            <div class="doctor-scan-header" id="doctorSummaryBanner">
+              <div style="display: flex; align-items: center; gap: 14px;">
+                <span style="font-size: 32px;" id="doctorStatusIcon">🩺</span>
+                <div>
+                  <h3 style="color: var(--text-main); font-size: 17px; margin-bottom: 4px;" id="doctorSummaryTitle">Diagnostic System Ready</h3>
+                  <p style="font-size: 12.5px; color: var(--text-muted);" id="doctorSummaryDesc">Click "Run Complete Diagnostic Scan" to perform a real-time health verification.</p>
+                </div>
+              </div>
+              <button class="btn btn-secondary" onclick="repairSpoolerService()">
+                ⚡ 1-Click Spooler Service Repair
+              </button>
+            </div>
+
+            <div class="doctor-checks-grid" id="doctorChecksList">
+              <div class="check-item-card">
+                <div class="check-item-left">
+                  <span class="check-status-icon">🔌</span>
+                  <div>
+                    <div class="check-item-name">Physical USB Connection</div>
+                    <div class="check-item-msg">Checks if Windows SetupAPI DIGCF_PRESENT detects printer hardware on USBPRINT class.</div>
+                  </div>
+                </div>
+                <span class="badge-tag">Ready</span>
+              </div>
+
+              <div class="check-item-card">
+                <div class="check-item-left">
+                  <span class="check-status-icon">⚙️</span>
+                  <div>
+                    <div class="check-item-name">Windows Print Spooler (spoolsv.exe)</div>
+                    <div class="check-item-msg">Validates spooler service status and inspects PRINTERS directory for corrupted shadow files.</div>
+                  </div>
+                </div>
+                <span class="badge-tag">Ready</span>
+              </div>
+
+              <div class="check-item-card">
+                <div class="check-item-left">
+                  <span class="check-status-icon">📡</span>
+                  <div>
+                    <div class="check-item-name">ESC/P-R Firmware Handshake</div>
+                    <div class="check-item-msg">Tests bidirectional communication with printer CPU and queries @BDC ST2 status.</div>
+                  </div>
+                </div>
+                <span class="badge-tag">Ready</span>
+              </div>
+            </div>
+
+            <!-- Troubleshooting Matrix Accordion -->
+            <h4 style="color: var(--text-main); font-size: 15px; margin: 24px 0 14px 0;">⚡ Quick Troubleshooting Solutions</h4>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <div style="padding: 14px 18px; border-radius: var(--radius-sm); background: #ffffff; border: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; box-shadow: var(--shadow-xs);">
+                <div>
+                  <strong style="color: var(--text-main); font-size: 13.5px;">Error 20000010: Communication Error</strong>
+                  <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Printer is turned off, cable loose, or Windows spooler queue is blocked with pending jobs.</div>
+                </div>
+                <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;" onclick="repairSpoolerService()">Repair Spooler & Clear Queue</button>
+              </div>
+
+              <div style="padding: 14px 18px; border-radius: var(--radius-sm); background: #ffffff; border: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; box-shadow: var(--shadow-xs);">
+                <div>
+                  <strong style="color: var(--text-main); font-size: 13.5px;">Missing Colors / Blank Pages After Inking</strong>
+                  <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Air trapped inside EcoTank silicon tubes preventing ink from reaching damper cavities.</div>
+                </div>
+                <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;" onclick="startAirBleed()">Run EcoTank Air Bleed</button>
+              </div>
+
+              <div style="padding: 14px 18px; border-radius: var(--radius-sm); background: #ffffff; border: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; box-shadow: var(--shadow-xs);">
+                <div>
+                  <strong style="color: var(--text-main); font-size: 13.5px;">Paper Feed Slipping / Blinking Paper LED</strong>
+                  <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Rubber pickup roller has accumulated micro-fine paper dust causing traction loss.</div>
+                </div>
+                <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;" onclick="cleanRoller()">Clean Pickup Rollers</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- =============================================================
+             TAB 3: MODEL CATALOG (234 MODELS)
+             ============================================================= -->
+        <div class="tab-pane" id="tab-models">
+          <div class="glass-card">
+            <div class="card-header">
+              <div class="card-title">
+                <span class="card-title-icon">📚</span>
+                <span>Supported Epson Models Catalog</span>
+              </div>
+              <span class="badge-tag success" id="modelsTotalCount">234 Models Calibrated</span>
+            </div>
+
+            <div class="model-search-bar">
+              <input type="text" id="modelSearchInput" class="search-input" placeholder="Search by model name or series (e.g. L3250, L3210, ET-2800, WF-7710, XP-15000)...">
+            </div>
+
+            <div class="model-family-chips">
+              <button class="btn btn-secondary chip-btn active" onclick="filterModelFamily('ALL')">All (234)</button>
+              <button class="btn btn-secondary chip-btn" onclick="filterModelFamily('EcoTank')">EcoTank (L/M)</button>
+              <button class="btn btn-secondary chip-btn" onclick="filterModelFamily('ET')">EcoTank ET-Series</button>
+              <button class="btn btn-secondary chip-btn" onclick="filterModelFamily('WorkForce')">WorkForce (WF)</button>
+              <button class="btn btn-secondary chip-btn" onclick="filterModelFamily('Expression')">Expression (XP)</button>
+              <button class="btn btn-secondary chip-btn" onclick="filterModelFamily('Stylus')">Stylus & Photo</button>
+            </div>
+
+            <div class="models-grid" id="modelsGrid">
+              <!-- Populated dynamically via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- =============================================================
+             TAB 4: NVRAM SAFETY VAULT & ROLLBACK
+             ============================================================= -->
+        <div class="tab-pane" id="tab-vault">
+          <div class="glass-card">
+            <div class="card-header">
+              <div class="card-title">
+                <span class="card-title-icon">💾</span>
+                <span>NVRAM EEPROM Safety Vault & Rollback</span>
+              </div>
+              <button class="btn btn-primary" onclick="createManualBackup()">
+                ➕ Create Manual Snapshot
+              </button>
+            </div>
+
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
+              Every waste pad reset automatically takes a cryptographic .bin + .json snapshot in the <code>backups/</code> directory before writing any byte to hardware. You can restore any past backup below.
+            </p>
+
+            <div id="backupsListContainer" style="display: flex; flex-direction: column; gap: 12px;">
+              <!-- Backups list populated via JS -->
+            </div>
+          </div>
+        </div>
+
+
+        <!-- =============================================================
+             TAB 6: SERVICE CERTIFICATE
+             ============================================================= -->
+        <div class="tab-pane" id="tab-certificate">
+          <div class="glass-card">
+            <div class="card-header">
+              <div class="card-title">
+                <span class="card-title-icon">📜</span>
+                <span>Technician Maintenance Certificate</span>
+              </div>
+              <button class="btn btn-primary" onclick="window.print()">
+                🖨️ Print Certificate
+              </button>
+            </div>
+
+            <div class="cert-card-container">
+              <div class="cert-header">
+                <h2 class="cert-title">EPSON SERVICE COMPLETION CERTIFICATE</h2>
+                <div class="cert-subtext">Universal AdjProg Pro Verification • Direct Spooler Protocol Engine</div>
+              </div>
+
+              <!-- Customer & Work Order Inputs -->
+              <div class="cert-input-row">
+                <div class="cert-input-group">
+                  <label for="certCustomerName">Customer / Organization Name</label>
+                  <input type="text" id="certCustomerName" placeholder="Client Name or Company..." value="Commercial Client">
+                </div>
+                <div class="cert-input-group">
+                  <label for="certWorkOrder">Service Work Order #</label>
+                  <input type="text" id="certWorkOrder" placeholder="WO-1001" value="WO-2026-9841">
+                </div>
+                <div class="cert-input-group">
+                  <label for="certTechName">Certified Technician Name</label>
+                  <input type="text" id="certTechName" placeholder="Technician Name" value="Lead Hardware Specialist">
+                </div>
+              </div>
+
+              <div class="cert-grid">
+                <div class="cert-field"><span class="cert-label">Printer Model:</span> <strong id="certModel">Epson L3250</strong></div>
+                <div class="cert-field"><span class="cert-label">Target Port:</span> <strong id="certPort">Auto Selection</strong></div>
+                <div class="cert-field"><span class="cert-label">Firmware Handshake:</span> <strong style="color: var(--accent-emerald);">Verified (0x0797 / Caesar)</strong></div>
+                <div class="cert-field"><span class="cert-label">Date & Time:</span> <strong id="certDate"></strong></div>
+                <div class="cert-field"><span class="cert-label">Main Counter Pre-Reset:</span> <strong id="certPreReset" style="color: var(--accent-rose);">Pending Check</strong></div>
+                <div class="cert-field"><span class="cert-label">Post-Reset Verification:</span> <strong id="certPostReset" style="color: var(--accent-emerald);">Pending Check</strong></div>
+              </div>
+
+              <!-- Maintenance Routine Checklist -->
+              <div class="cert-checklist">
+                <div style="font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 4px;">Verified Service Routines Completed:</div>
+                <label class="cert-check-label">
+                  <input type="checkbox" checked>
+                  <span>Waste Ink Pad Shadow RAM zeroed & non-volatile EEPROM flash committed</span>
+                </label>
+                <label class="cert-check-label">
+                  <input type="checkbox" checked>
+                  <span>Acoustic micro-pulse head clean & nozzle wiper cap seal inspected</span>
+                </label>
+                <label class="cert-check-label">
+                  <input type="checkbox" checked>
+                  <span>Pickup roller surface cleaned and paper feed timing verified</span>
+                </label>
+                <label class="cert-check-label">
+                  <input type="checkbox" checked>
+                  <span>Pre-maintenance NVRAM binary snapshot archived in safety vault</span>
+                </label>
+              </div>
+
+              <div style="border-top: 1px solid var(--border-subtle); padding-top: 20px; display: flex; justify-content: space-between; align-items: flex-end;">
+                <div>
+                  <div style="font-size: 12px; color: var(--text-muted);">Certified Service Signature</div>
+                  <div style="font-family: var(--font-mono); font-size: 16px; margin-top: 10px; color: var(--accent-cyan);" id="certSigText">Trel- Universal Core Specialist</div>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-size: 12px; font-weight: 700; color: var(--accent-emerald);">[ VERIFIED AUTHENTIC ]</div>
+                  <div style="font-size: 11px; font-family: var(--font-mono); color: var(--text-subtle); margin-top: 4px;">
+                    SHA-256 NVRAM Snapshot Logged
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+  <!-- ===================================================================
+       AUTHENTIC EPSON ADJPROG COMMUNICATION ERROR MODAL (20000010)
+       =================================================================== -->
+  <div class="modal-backdrop" id="commErrorModal">
+    <div class="modal-box" style="border: 1px solid var(--accent-rose); width: 480px;">
+      <div style="display: flex; align-items: flex-start; gap: 16px; margin-bottom: 16px;">
+        <span style="font-size: 36px; line-height: 1;">⚠️</span>
+        <div>
+          <h3 style="color: var(--accent-rose); font-size: 18px; font-weight: 700;">Communication Error!</h3>
+          <div style="font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); margin-top: 2px;">Error Code: 20000010</div>
+        </div>
+      </div>
+      <p style="color: var(--text-main); font-size: 14px; line-height: 1.6; margin-bottom: 20px;" id="commErrorMsg">
+        Cannot communicate with the printer.<br><br>
+        Check the following:<br>
+        <strong>1.</strong> The printer power is ON.<br>
+        <strong>2.</strong> The interface cable (USB) is securely connected.<br>
+        <strong>3.</strong> The correct model and port are selected.<br>
+        <strong>4.</strong> Any stuck print jobs in Windows Spooler are cleared.
+      </p>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button class="btn btn-secondary" onclick="closeCommErrorModal()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       AUTHENTIC ADJPROG "PLEASE TURN OFF THE PRINTER" MODAL
+       =================================================================== -->
+  <div class="modal-backdrop" id="turnOffPrinterModal">
+    <div class="modal-box" style="text-align: center; width: 480px;">
+      <span style="font-size: 52px; display: block; margin-bottom: 14px;">🔌</span>
+      <h3 style="color: var(--text-main); font-size: 20px; font-weight: 800; margin-bottom: 10px;">
+        Please turn off the printer.
+      </h3>
+      <p style="color: var(--text-muted); font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
+        Counter registers have been zeroed in shadow RAM.<br><br>
+        <strong>Press the printer power button to turn it OFF now.</strong><br>
+        This allows the printer CPU to commit the 0.0% counter state into permanent EEPROM flash memory.
+      </p>
+      <button class="btn btn-primary" onclick="confirmPrinterTurnedOff()" style="padding: 12px 28px;">
+        I have turned off the printer
+      </button>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       AUTHENTIC INITIALIZATION CONFIRMATION MODAL
+       =================================================================== -->
+  <div class="modal-backdrop" id="initConfirmModal">
+    <div class="modal-box" style="width: 480px;">
+      <h3 style="color: var(--text-main); font-size: 18px; font-weight: 800; margin-bottom: 10px;">
+        ⚡ Confirm Initialization
+      </h3>
+      <p style="color: var(--text-main); font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
+        When the OK button is clicked, initialization is done.<br><br>
+        Selected counters will be reset to <strong>0% (0 points)</strong> for <strong id="initConfirmTarget" style="color: var(--accent-cyan);">Epson Printer</strong>.
+      </p>
+      <div style="display: flex; justify-content: flex-end; gap: 12px;">
+        <button class="btn btn-secondary" onclick="closeInitConfirmModal()">Cancel</button>
+        <button class="btn btn-danger" id="btnExecuteInit" onclick="executeReset()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       CLEANING COUNTDOWN OVERLAY
+       =================================================================== -->
+  <div class="modal-backdrop" id="cleanModal">
+    <div class="modal-box" style="text-align: center;">
+      <h3 style="color: var(--text-main); font-size: 20px; font-weight: 800; margin-bottom: 6px;" id="cleanModalTitle">
+        Printhead Cleaning in Progress
+      </h3>
+      <p style="color: var(--accent-cyan); font-size: 13px; font-family: var(--font-mono); font-weight: 600; margin-bottom: 20px;" id="cleanPhaseText">
+        Acoustic micro-pulse ink purge...
+      </p>
+
+      <div style="font-size: 56px; font-weight: 800; font-family: var(--font-mono); color: var(--text-main); margin: 16px 0;" id="cleanTimerVal">
+        140s
+      </div>
+
+      <div class="sub-counter-bar" style="height: 12px; border-radius: 6px; margin: 20px 0;">
+        <div class="sub-counter-fill" id="cleanProgressBar" style="width: 0%;"></div>
+      </div>
+
+      <p style="font-size: 12px; color: var(--text-muted); font-weight: 500;">
+        Do not turn off printer or unplug USB cable while the pump cycle is running.
+      </p>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

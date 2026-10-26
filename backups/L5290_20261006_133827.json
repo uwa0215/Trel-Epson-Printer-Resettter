@@ -1,0 +1,14 @@
+{
+  "model_id": "L5290",
+  "timestamp": "2026-10-06T13:38:27.391057",
+  "notes": "Pre-reset EEPROM backup",
+  "address_hex_map": {
+    "0x30": "0x24",
+    "0x31": "0x18"
+  },
+  "address_int_map": {
+    "0x30": 36,
+    "0x31": 24
+  },
+  "bin_file": "L5290_20261006_133827.bin"
+}

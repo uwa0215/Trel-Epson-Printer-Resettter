@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trel- Epson Universal Tool - Universal Maintenance & EEPROM Reset</title>
+  
+  <!-- Modern Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js for Live Telemetry & Maintenance Analytics (Local Offline Bundle) -->
+  <script src="chart.umd.min.js"></script>
+
+  <!-- Modern Glassmorphic Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="theme-dark">
+
+  <div class="app-container">
+
+    <!-- ===================================================================
+         SIDEBAR NAVIGATION
+         =================================================================== -->
+    <aside class="sidebar">
+      <div>
+        <!-- Brand Identity -->
+        <div class="sidebar-brand">
+          <img src="DSS.png" alt="DSS Logo" class="brand-logo-img">
+          <div>
+            <div class="brand-title">Trel- Epson Tool</div>
+            <div class="brand-subtitle">Universal Core v2.8</div>
+          </div>
+        </div>
+
+        <!-- Navigation Menu -->
+        <nav class="nav-menu">
+          <div class="nav-item active" onclick="switchTab('reset')">
+            <span class="nav-icon">⚡</span>
+            <span>Waste Pad Reset</span>
+          </div>
+          <div class="nav-item" onclick="switchTab('clean')">
+            <span class="nav-icon">🛠️</span>
+            <span>Printhead Service</span>
+          </div>
+          <div class="nav-item" onclick="switchTab('models')">
+            <span class="nav-icon">📚</span>
+            <span>Model Database</span>
+            <span class="nav-badge" id="badgeModelsCount">234</span>
+          </div>
+          <div class="nav-item" onclick="switchTab('analytics')">
+            <span class="nav-icon">📊</span>
+            <span>Lifetime Analytics</span>
+          </div>
+          <div class="nav-item" onclick="switchTab('eeprom')">
+            <span class="nav-icon">💾</span>
+            <span>NVRAM Vault</span>
+          </div>
+          <div class="nav-item" onclick="switchTab('cert')">
+            <span class="nav-icon">📜</span>
+            <span>Service Certificate</span>
+          </div>
+          <div class="nav-item" onclick="switchTab('logs')">
+            <span class="nav-icon">📡</span>
+            <span>Hardware Telemetry</span>
+          </div>
+        </nav>
+      </div>
+
+      <!-- Sidebar Footer Controls -->
+      <div class="sidebar-footer">
+        <button class="theme-toggle-btn" onclick="toggleTheme()">
+          <span id="themeLabel">🌙 Obsidian Dark</span>
+          <span>Switch ☀️</span>
+        </button>
+        <div class="text-[11px] text-gray-500 text-center font-mono">
+          Engine: ESC/P-R Remote1 (0x0797)
+        </div>
+      </div>
+    </aside>
+
+    <!-- ===================================================================
+         MAIN VIEWPORT WRAPPER
+         =================================================================== -->
+    <div class="main-wrapper">
+
+      <!-- TOP APP HEADER -->
+      <header class="top-header">
+        <div class="header-left">
+          <!-- Live USB Hardware Pill -->
+          <div class="usb-detector-pill" id="usbStatusPill">
+            <div class="led-pulse" id="usbLed"></div>
+            <div>
+              <span id="usbStatusText" class="text-xs text-gray-300">Auto-Detecting USB Device...</span>
+              <strong id="usbDeviceName" class="text-xs text-emerald-400 block font-mono">Scanning...</strong>
+            </div>
+          </div>
+
+          <!-- Port & Model Quick Indicator -->
+          <div class="text-xs text-gray-400 font-mono hidden md:block">
+            Target: <span id="hdrTargetModel" class="text-sky-400 font-bold">L3250</span> on <span id="hdrTargetPort" class="text-amber-400 font-bold">USB001</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- Refresh USB Hardware Button -->
+          <button class="btn btn-secondary text-xs" onclick="refreshHardwareScan()">
+            🔄 Scan USB Now
+          </button>
+
+          <!-- Simulator vs Hardware Toggle -->
+          <button class="btn btn-secondary text-xs" id="btnToggleSim" onclick="toggleSimulatorMode()">
+            🧪 Simulator: OFF
+          </button>
+        </div>
+      </header>
+
+      <!-- CONTENT VIEWPORT -->
+      <main class="viewport-content">
+
+        <!-- ===============================================================
+             TAB 1: WASTE INK PAD RESETTER CORE
+             =============================================================== -->
+        <section id="view-reset" class="tab-view active">
+          <div style="display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 20px;">
+
+            <!-- Left: Circular Gauge Card & Reset Action -->
+            <div class="glass-panel gauge-card">
+              <h2 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; align-self: flex-start;">
+                ⚡ Waste Ink Pad Counter Engine
+              </h2>
+              <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 24px; align-self: flex-start;">
+                Real-time factory EEPROM register status (0x30, 0x31, 0x32, 0x33, 0x1C)
+              </p>
+
+              <!-- Animated SVG Circular Radial Gauge -->
+              <div class="radial-gauge-container">
+                <svg class="radial-svg" viewBox="0 0 200 200">
+                  <defs>
+                    <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#10b981" />
+                      <stop offset="60%" stop-color="#fbbf24" />
+                      <stop offset="100%" stop-color="#f43f5e" />
+                    </linearGradient>
+                  </defs>
+                  <!-- Background Track -->
+                  <circle class="radial-bg" cx="100" cy="100" r="85"></circle>
+                  <!-- Meter Progress Fill -->
+                  <circle class="radial-meter" id="gaugeMeterCircle" cx="100" cy="100" r="85"></circle>
+                </svg>
+
+                <div class="gauge-center-content">
+                  <div class="gauge-pct-value" id="gaugeMainPct">97.5%</div>
+                  <div class="gauge-sub-label" id="gaugeMainStatus">CRITICAL LEVEL</div>
+                  <div class="gauge-pts-tag" id="gaugeMainPts">6,180 / 6,340 pts</div>
+                </div>
+              </div>
+
+              <!-- Mini Gauges Row -->
+              <div class="mini-gauges-row">
+                <div class="mini-gauge-card">
+                  <div class="mini-gauge-info">
+                    <span class="mini-gauge-title">Platen Waste Pad</span>
+                    <span class="mini-gauge-val" id="valPlatenPad">12.0%</span>
+                  </div>
+                  <span style="font-size: 1.2rem;">🛡️</span>
+                </div>
+                <div class="mini-gauge-card">
+                  <div class="mini-gauge-info">
+                    <span class="mini-gauge-title">Borderless Pad</span>
+                    <span class="mini-gauge-val" id="valBorderlessPad">8.5%</span>
+                  </div>
+                  <span style="font-size: 1.2rem;">✨</span>
+                </div>
+              </div>
+
+              <!-- Action Bar -->
+              <div style="margin-top: 24px; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                <button class="btn btn-secondary" onclick="queryStatus()">
+                  🔍 Read Registers
+                </button>
+                <button class="btn btn-danger" style="flex: 1; padding: 12px;" onclick="openResetWizard()">
+                  ♻️ Safe One-Click Reset to 0.0%
+                </button>
+              </div>
+            </div>
+
+            <!-- Right: Ink Channels & Hardware Registers -->
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+
+              <!-- Per-Channel Ink Tank Visualizer -->
+              <div class="glass-panel" style="padding: 20px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <h3 style="font-size: 0.95rem; font-weight: 700;">💧 Per-Channel Ink Supply</h3>
+                  <span style="font-size: 0.7rem; color: var(--text-dim); font-family: monospace;">ESC/P-R IQ Query</span>
+                </div>
+
+                <div class="ink-tanks-grid">
+                  <!-- Black (K) -->
+                  <div class="ink-tank-col">
+                    <div class="tank-tube">
+                      <div class="tank-fluid fluid-k" id="fluidK" style="height: 85%;"></div>
+                    </div>
+                    <span class="tank-label">Black</span>
+                    <span class="tank-pct" id="pctK">85%</span>
+                  </div>
+                  <!-- Cyan (C) -->
+                  <div class="ink-tank-col">
+                    <div class="tank-tube">
+                      <div class="tank-fluid fluid-c" id="fluidC" style="height: 92%;"></div>
+                    </div>
+                    <span class="tank-label">Cyan</span>
+                    <span class="tank-pct" id="pctC">92%</span>
+                  </div>
+                  <!-- Magenta (M) -->
+                  <div class="ink-tank-col">
+                    <div class="tank-tube">
+                      <div class="tank-fluid fluid-m" id="fluidM" style="height: 78%;"></div>
+                    </div>
+                    <span class="tank-label">Magenta</span>
+                    <span class="tank-pct" id="pctM">78%</span>
+                  </div>
+                  <!-- Yellow (Y) -->
+                  <div class="ink-tank-col">
+                    <div class="tank-tube">
+                      <div class="tank-fluid fluid-y" id="fluidY" style="height: 95%;"></div>
+                    </div>
+                    <span class="tank-label">Yellow</span>
+                    <span class="tank-pct" id="pctY">95%</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Hardware NVRAM Register Map Info -->
+              <div class="glass-panel" style="padding: 20px;">
+                <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 8px;">
+                  🔒 Firmware Security & Parity
+                </h3>
+                <p style="font-size: 0.775rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 14px;">
+                  Exact byte-level parity with official service software (<code>Epson_Reset.exe</code> / <code>apdadrv.dll</code>). All commands use authentic Caesar key authentication and atomic packet encapsulation.
+                </p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 0.725rem;">
+                  <div style="background: var(--bg-card-hover); padding: 8px 10px; border-radius: 6px;">
+                    <span style="color: var(--text-dim);">Auth Key:</span> <strong style="color: var(--primary);">b'Maribaya'</strong>
+                  </div>
+                  <div style="background: var(--bg-card-hover); padding: 8px 10px; border-radius: 6px;">
+                    <span style="color: var(--text-dim);">Read Key:</span> <strong style="color: var(--sky);">0x0797</strong>
+                  </div>
+                  <div style="background: var(--bg-card-hover); padding: 8px 10px; border-radius: 6px;">
+                    <span style="color: var(--text-dim);">Registers:</span> <strong style="color: var(--amber);">0x30, 0x31</strong>
+                  </div>
+                  <div style="background: var(--bg-card-hover); padding: 8px 10px; border-radius: 6px;">
+                    <span style="color: var(--text-dim);">Backup:</span> <strong style="color: var(--primary);">Automated</strong>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ===============================================================
+             TAB 2: PRINTHEAD SERVICE & MAINTENANCE
+             =============================================================== -->
+        <section id="view-clean" class="tab-view">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+
+            <!-- Left: Printhead Cleaning Cycles -->
+            <div class="glass-panel" style="padding: 24px;">
+              <h2 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 6px;">
+                🛠️ Printhead Cleaning Cycles
+              </h2>
+              <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 20px;">
+                Executes micro-voltage piezo acoustic purges to unclog dried nozzles.
+              </p>
+
+              <!-- 3 Clean Levels -->
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;">
+                <button class="btn btn-secondary" onclick="startHeadClean('light')" style="flex-direction: column; padding: 14px 10px;">
+                  <span style="font-size: 1.1rem;">💧</span>
+                  <span style="font-weight: 700;">Light</span>
+                  <span style="font-size: 0.65rem; color: var(--text-muted);">~140s Routine</span>
+                </button>
+                <button class="btn btn-secondary" onclick="startHeadClean('medium')" style="flex-direction: column; padding: 14px 10px;">
+                  <span style="font-size: 1.1rem;">💧💧</span>
+                  <span style="font-weight: 700;">Medium</span>
+                  <span style="font-size: 0.65rem; color: var(--text-muted);">~180s Standard</span>
+                </button>
+                <button class="btn btn-secondary" onclick="startHeadClean('strong')" style="flex-direction: column; padding: 14px 10px;">
+                  <span style="font-size: 1.1rem;">🌊</span>
+                  <span style="font-weight: 700;">Strong</span>
+                  <span style="font-size: 0.65rem; color: var(--text-muted);">~220s Deep</span>
+                </button>
+              </div>
+
+              <!-- Cleaning Progress Box (Active State) -->
+              <div id="cleanProgressBox" style="display: none; background: var(--bg-card-hover); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--sky); margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; margin-bottom: 8px;">
+                  <span id="cleanPhaseLabel" style="color: var(--sky);">Wiper Cycle in Progress...</span>
+                  <span id="cleanCountdown">140s</span>
+                </div>
+                <div style="height: 6px; background: rgba(0,0,0,0.3); border-radius: 999px; overflow: hidden;">
+                  <div id="cleanProgressBar" style="width: 0%; height: 100%; background: var(--sky); transition: width 1s linear;"></div>
+                </div>
+              </div>
+
+              <!-- Power Cleaning Warning Box -->
+              <div style="padding: 16px; border-radius: var(--radius-md); border: 1px solid rgba(251, 191, 36, 0.3); background: rgba(251, 191, 36, 0.05); margin-bottom: 14px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                  <span style="font-size: 1.2rem;">⚡</span>
+                  <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--amber);">Power Cleaning / Heavy Ink Flush (~360s)</h4>
+                </div>
+                <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 12px;">
+                  High-pressure suction cycle for persistent dried nozzle clogs. Requires 12-hour resting period.
+                </p>
+                <button class="btn btn-amber" style="width: 100%;" onclick="openPowerFlushModal()">
+                  Execute Power Cleaning / Ink Flush (~360s)
+                </button>
+              </div>
+
+              <!-- EcoTank Ink Tube Air Bleed Box -->
+              <div style="padding: 16px; border-radius: var(--radius-md); border: 1px solid rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.05);">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                  <span style="font-size: 1.2rem;">🩸</span>
+                  <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--primary);">EcoTank Ink Tube Air Bleed & Damper Charge (~270s)</h4>
+                </div>
+                <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 12px;">
+                  Opens solenoid valves to draw ink into empty tubes and clear air bubbles. Essential after refilling ink tanks.
+                </p>
+                <button class="btn btn-primary" style="width: 100%;" onclick="startAirBleed()">
+                  Start Ink Tube Air Bleed (~270s)
+                </button>
+              </div>
+
+            </div>
+
+            <!-- Right: Nozzle Check & Alignment -->
+            <div class="glass-panel" style="padding: 24px;">
+              <h2 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 6px;">
+                📄 Nozzle Check & Alignment
+              </h2>
+              <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 20px;">
+                Prints diagnostic staircase patterns to evaluate printhead health.
+              </p>
+
+              <!-- Nozzle Pattern Visual Preview Simulation -->
+              <div style="background: #ffffff; border-radius: var(--radius-md); padding: 18px; border: 1px solid var(--border-subtle); margin-bottom: 20px; box-shadow: inset 0 2px 6px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; font-family: monospace; margin-bottom: 10px;">
+                  <span>NOZZLE CHECK PATTERN PREVIEW</span>
+                  <span>100% HEALTH</span>
+                </div>
+                <!-- Staircase lines -->
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <div style="height: 3px; background: #000000; border-radius: 1px; width: 90%;"></div>
+                  <div style="height: 3px; background: #0284c7; border-radius: 1px; width: 85%;"></div>
+                  <div style="height: 3px; background: #be123c; border-radius: 1px; width: 88%;"></div>
+                  <div style="height: 3px; background: #eab308; border-radius: 1px; width: 92%;"></div>
+                </div>
+              </div>
+
+              <!-- Options -->
+              <div style="display: flex; align-items: center; gap: 8px; font-size: 0.775rem; color: var(--text-muted); margin-bottom: 16px;">
+                <input type="checkbox" id="chkRasterFallback" style="accent-color: var(--primary);">
+                <label for="chkRasterFallback" style="cursor: pointer;">Enable ESC/P-R Raster Staircase Fallback</label>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button class="btn btn-primary" style="padding: 12px;" onclick="printNozzleTest()">
+                  🖨️ Print Physical Nozzle Test Sheet
+                </button>
+                <button class="btn btn-secondary" onclick="startAlignmentRoutine()">
+                  📐 Run Bi-Directional Head Alignment
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ===============================================================
+             TAB 3: 234+ MODEL DATABASE EXPLORER
+             =============================================================== -->
+        <section id="view-models" class="tab-view">
+          <div class="glass-panel" style="padding: 24px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+              <div>
+                <h2 style="font-size: 1.15rem; font-weight: 700;">📚 Universal Epson Model Database</h2>
+                <p style="font-size: 0.75rem; color: var(--text-muted);">
+                  Search across 234+ verified hardware profiles with EEPROM memory maps.
+                </p>
+              </div>
+              <span class="nav-badge" style="font-size: 0.8rem; padding: 4px 10px;" id="badgeModelsTotal">234 Models Loaded</span>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="model-search-bar">
+              <span>🔍</span>
+              <input type="text" id="modelSearchInput" placeholder="Search by model name (e.g. L3250, L120, ET-2800, WF-7710)..." oninput="filterModels()">
+            </div>
+
+            <!-- Filter Chips -->
+            <div class="model-filter-chips">
+              <button class="chip-btn active" onclick="setFilterFamily('ALL', this)">All Families (234)</button>
+              <button class="chip-btn" onclick="setFilterFamily('L', this)">EcoTank L-Series</button>
+              <button class="chip-btn" onclick="setFilterFamily('ET', this)">EcoTank ET-Series</button>
+              <button class="chip-btn" onclick="setFilterFamily('WF', this)">WorkForce Pro</button>
+              <button class="chip-btn" onclick="setFilterFamily('XP', this)">Expression XP</button>
+              <button class="chip-btn" onclick="setFilterFamily('STYLUS', this)">Stylus / SureColor</button>
+            </div>
+
+            <!-- Models Grid -->
+            <div class="models-grid-layout" id="modelsGridContainer">
+              <!-- Dynamically populated via JS -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ===============================================================
+             TAB 4: LIFETIME HARDWARE ANALYTICS & TELEMETRY
+             =============================================================== -->
+        <section id="view-analytics" class="tab-view">
+          <div style="display: flex; flex-direction: column; gap: 20px;">
+
+            <!-- Stat Counters Row -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+              <div class="glass-panel" style="padding: 18px;">
+                <span style="font-size: 0.725rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Total Page Volume</span>
+                <div style="font-size: 1.8rem; font-weight: 800; font-family: 'Outfit'; color: var(--sky); margin: 6px 0;" id="statTotalPages">1,428</div>
+                <span style="font-size: 0.7rem; color: var(--text-dim);">Verified from EEPROM</span>
+              </div>
+              <div class="glass-panel" style="padding: 18px;">
+                <span style="font-size: 0.725rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">B&W Mono Prints</span>
+                <div style="font-size: 1.8rem; font-weight: 800; font-family: 'Outfit'; color: var(--primary); margin: 6px 0;" id="statBwPages">1,042</div>
+                <span style="font-size: 0.7rem; color: var(--text-dim);">73.0% ratio</span>
+              </div>
+              <div class="glass-panel" style="padding: 18px;">
+                <span style="font-size: 0.725rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Color Photo Prints</span>
+                <div style="font-size: 1.8rem; font-weight: 800; font-family: 'Outfit'; color: var(--violet); margin: 6px 0;" id="statColorPages">386</div>
+                <span style="font-size: 0.7rem; color: var(--text-dim);">27.0% ratio</span>
+              </div>
+              <div class="glass-panel" style="padding: 18px;">
+                <span style="font-size: 0.725rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Hardware Health</span>
+                <div style="font-size: 1.8rem; font-weight: 800; font-family: 'Outfit'; color: var(--amber); margin: 6px 0;">96%</div>
+                <span style="font-size: 0.7rem; color: var(--text-dim);">Optimal Printhead</span>
+              </div>
+            </div>
+
+            <!-- Charts Grid -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+              <div class="glass-panel" style="padding: 22px;">
+                <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 14px;">📊 Print Volume Distribution</h3>
+                <div style="height: 230px; position: relative;">
+                  <canvas id="chartDistribution"></canvas>
+                </div>
+              </div>
+
+              <div class="glass-panel" style="padding: 22px;">
+                <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 14px;">📈 Maintenance & Cleaning History</h3>
+                <div style="height: 230px; position: relative;">
+                  <canvas id="chartMaintenance"></canvas>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ===============================================================
+             TAB 5: EEPROM BACKUP VAULT & RAW BYTE INSPECTOR
+             =============================================================== -->
+        <section id="view-eeprom" class="tab-view">
+          <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 20px;">
+
+            <!-- Left: Backups Archive -->
+            <div class="glass-panel" style="padding: 22px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+                <div>
+                  <h3 style="font-size: 1rem; font-weight: 700;">💾 NVRAM Backup Archive</h3>
+                  <p style="font-size: 0.75rem; color: var(--text-muted);">
+                    Timestamped binary dumps (.bin) & register maps (.json)
+                  </p>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button class="btn btn-secondary text-xs" onclick="createManualBackup()">
+                    ➕ Take Snapshot
+                  </button>
+                  <button class="btn btn-secondary text-xs" onclick="openBackupsFolder()">
+                    📂 Open Folder
+                  </button>
+                </div>
+              </div>
+
+              <!-- List of backups -->
+              <div id="backupsListContainer" style="display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto;">
+                <!-- Populated via JS -->
+              </div>
+            </div>
+
+            <!-- Right: Raw EEPROM Byte Writer -->
+            <div class="glass-panel" style="padding: 22px;">
+              <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 6px;">
+                💻 Raw EEPROM Byte Editor
+              </h3>
+              <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 18px;">
+                Direct factory command (<code>|| B</code>) write to specific hardware register.
+              </p>
+
+              <div style="display: flex; flex-direction: column; gap: 14px;">
+                <div>
+                  <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Hex Address (0x00 - 0xFF)</label>
+                  <input type="text" id="rawAddrInput" value="0x30" style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-subtle); padding: 8px 12px; border-radius: 6px; color: var(--text-main); font-family: monospace;">
+                </div>
+                <div>
+                  <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Byte Value (0 - 255 / Decimal)</label>
+                  <input type="number" id="rawValInput" value="0" min="0" max="255" style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-subtle); padding: 8px 12px; border-radius: 6px; color: var(--text-main); font-family: monospace;">
+                </div>
+                <button class="btn btn-primary" onclick="writeRawByte()">
+                  ✍️ Write Byte to Hardware NVRAM
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ===============================================================
+             TAB 6: SERVICE CERTIFICATE STUDIO
+             =============================================================== -->
+        <section id="view-cert" class="tab-view">
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div>
+                <h2 style="font-size: 1.15rem; font-weight: 700;">📜 Digital Service Maintenance Certificate</h2>
+                <p style="font-size: 0.75rem; color: var(--text-muted);">
+                  Official printable maintenance report with cryptographic reset verification.
+                </p>
+              </div>
+              <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary text-xs" onclick="copyCertText()">📋 Copy Text</button>
+                <button class="btn btn-primary text-xs" onclick="window.print()">🖨️ Print Certificate (PDF)</button>
+              </div>
+            </div>
+
+            <!-- Certificate Visual Sheet -->
+            <div class="certificate-preview-box">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0284c7; padding-bottom: 16px; margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                  <img src="DSS.png" alt="DSS" style="width: 48px; height: 58px; object-fit: contain;">
+                  <div>
+                    <h1 style="font-size: 1.3rem; font-weight: 800; color: #0f172a; margin: 0;">CERTIFICATE OF HARDWARE SERVICE</h1>
+                    <p style="font-size: 0.8rem; color: #0284c7; font-weight: 600;">Epson Precision Diagnostics & EEPROM Zero-Calibration</p>
+                  </div>
+                </div>
+                <div style="text-align: right; font-family: monospace; font-size: 0.75rem; color: #64748b;">
+                  <div>ID: <strong id="certHash">#EPS-2026-9481</strong></div>
+                  <div id="certDate">Date: October 7, 2026</div>
+                </div>
+              </div>
+
+              <!-- Certificate Body -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; font-size: 0.85rem; margin-bottom: 24px;">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <div><strong>Printer Model:</strong> <span id="certModel">Epson L3250 Series</span></div>
+                  <div><strong>Interface Port:</strong> <span id="certPort">USB001 (Windows Spooler RAW)</span></div>
+                  <div><strong>Serial Number:</strong> <span id="certSerial">EP-L5290-044</span></div>
+                  <div><strong>Lifetime Prints:</strong> <span id="certPages">1,428 Pages</span></div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <div><strong>Initial Counter:</strong> <span style="color: #ef4444; font-weight: 700;">6,180 pts (97.5%)</span></div>
+                  <div><strong>Calibrated Counter:</strong> <span style="color: #059669; font-weight: 700;">0 pts (0.0% RESET)</span></div>
+                  <div><strong>Security Key:</strong> <span>b'Maribaya' / Caesar Auth</span></div>
+                  <div><strong>Service Status:</strong> <span style="color: #059669; font-weight: 700;">CERTIFIED OPTIMAL</span></div>
+                </div>
+              </div>
+
+              <!-- Technician Signoff -->
+              <div style="border-top: 1px dashed #cbd5e1; padding-top: 16px; display: flex; justify-content: space-between; align-items: flex-end;">
+                <div>
+                  <div style="font-size: 0.75rem; color: #64748b;">Authorized Diagnostic Engine:</div>
+                  <div style="font-size: 0.85rem; font-weight: 700; color: #0f172a;">Trel- Epson Universal Tool v2.8</div>
+                </div>
+                <div style="text-align: center;">
+                  <div style="border-bottom: 1px solid #0f172a; width: 180px; height: 30px;"></div>
+                  <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">Service Technician Signature</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ===============================================================
+             TAB 7: LIVE HARDWARE TELEMETRY CONSOLE
+             =============================================================== -->
+        <section id="view-logs" class="tab-view">
+          <div class="glass-panel" style="padding: 22px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+              <div>
+                <h3 style="font-size: 1rem; font-weight: 700;">📡 Live Hardware Packet Stream</h3>
+                <p style="font-size: 0.75rem; color: var(--text-muted);">
+                  Real-time ESC/P-R Remote1 hex packets and status responses.
+                </p>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-secondary text-xs" onclick="clearLogs()">Clear Console</button>
+                <button class="btn btn-secondary text-xs" onclick="copyLogs()">Copy All Packets</button>
+              </div>
+            </div>
+
+            <!-- Terminal -->
+            <div class="hex-terminal" id="terminalLogs">
+              <div class="log-entry log-info">
+                <span class="log-time">[Ready]</span>
+                <span>Hardware telemetry engine active. Listening for printer communication packets...</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+  </div>
+
+  <!-- ===================================================================
+       MODAL: SAFE RESET STEPPER WIZARD
+       =================================================================== -->
+  <div class="modal-overlay" id="modalResetWizard">
+    <div class="modal-box">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-main);">
+          ⚡ Safe EEPROM Reset Stepper
+        </h3>
+        <button onclick="closeModal('modalResetWizard')" style="background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;">✕</button>
+      </div>
+
+      <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">
+        Executing full cryptographic atomic reset on <strong class="text-sky-400" id="resetModalTarget">L3250 [USB001]</strong>:
+      </p>
+
+      <!-- Stepper List -->
+      <div class="stepper-list">
+        <div class="step-row" id="step1">
+          <div class="step-icon-box">1</div>
+          <div>
+            <div class="step-text-title">Windows Spooler Queue Purge</div>
+            <div class="step-text-sub">Canceling stuck print jobs to prevent communication locks</div>
+          </div>
+        </div>
+
+        <div class="step-row" id="step2">
+          <div class="step-icon-box">2</div>
+          <div>
+            <div class="step-text-title">Cryptographic NVRAM Backup</div>
+            <div class="step-text-sub">Saving full 256-byte snapshot to backups/ vault</div>
+          </div>
+        </div>
+
+        <div class="step-row" id="step3">
+          <div class="step-icon-box">3</div>
+          <div>
+            <div class="step-text-title">Firmware Security Handshake</div>
+            <div class="step-text-sub">Authenticating Caesar key (b'Maribaya' / 0x0797)</div>
+          </div>
+        </div>
+
+        <div class="step-row" id="step4">
+          <div class="step-icon-box">4</div>
+          <div>
+            <div class="step-text-title">EEPROM Register Zeroing</div>
+            <div class="step-text-sub">Writing 0x00 to 0x30, 0x31, 0x32, 0x33, 0x1C</div>
+          </div>
+        </div>
+
+        <div class="step-row" id="step5">
+          <div class="step-icon-box">5</div>
+          <div>
+            <div class="step-text-title">Hardware Verification</div>
+            <div class="step-text-sub">Reading back registers to verify 0.0% counter confirmation</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button class="btn btn-secondary" onclick="closeModal('modalResetWizard')">Cancel</button>
+        <button class="btn btn-danger" id="btnConfirmReset" onclick="triggerResetExecution()">
+          Start Reset Sequence
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: POWER FLUSH WARNING -->
+  <div class="modal-overlay" id="modalPowerFlush">
+    <div class="modal-box">
+      <div style="display: flex; align-items: center; gap: 10px; color: var(--amber); margin-bottom: 12px;">
+        <span style="font-size: 1.6rem;">⚠️</span>
+        <h3 style="font-size: 1.15rem; font-weight: 700;">Mandatory 12-Hour Cooldown</h3>
+      </div>
+      <p style="font-size: 0.825rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px;">
+        Power Cleaning consumes substantial ink and rapidly fills the waste ink pad. Epson firmware requires a <strong>12-hour resting period</strong> between ink flushes to prevent printhead overheating.
+      </p>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button class="btn btn-secondary" onclick="closeModal('modalPowerFlush')">Cancel</button>
+        <button class="btn btn-amber" onclick="executePowerFlush()">Confirm & Execute</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "model_id": "L3250",
+  "timestamp": "2026-10-26T03:03:00.068Z",
+  "formatted_time": "10/26/2026, 11:03:00 AM",
+  "notes": "Automatic Pre-Reset Vault Backup for EPSON L3250 Series (Copy 1)",
+  "bin_file": "backup_L3250_20261026_110300.bin",
+  "registers_count": 10,
+  "address_hex_map": {
+    "0x1C": 0,
+    "0x2F": 0,
+    "0x30": 0,
+    "0x31": 0,
+    "0x32": 0,
+    "0x33": 0,
+    "0x34": 0,
+    "0x35": 0,
+    "0x36": 94,
+    "0x37": 94
+  }
+}

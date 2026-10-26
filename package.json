@@ -1,0 +1,26 @@
+{
+  "name": "printer-resetter",
+  "version": "1.0.0",
+  "description": "**AdjProg Pro Universal** is a standalone Windows desktop service utility for diagnosing, maintaining, reading, and resetting waste ink pad counters across **234 Epson printer models**.",
+  "main": "electron/main.js",
+  "scripts": {
+    "app": "electron .",
+    "start": "electron .",
+    "dev": "vite",
+    "build": "vite build",
+    "server": "node server/index.js",
+    "build:native": "C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\csc.exe /nologo /optimize+ /platform:x86 /target:exe /out:server\\native\\spooler_bridge.exe server\\native\\SpoolerBridge.cs"
+  },
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^5.3.0",
+    "open": "^11.0.4",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "electron": "^44.7.2",
+    "vite": "^8.3.4"
+  }
+}
