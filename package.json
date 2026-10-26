@@ -8,6 +8,10 @@
     "start": "electron .",
     "dev": "vite",
     "build": "vite build",
+    "build:ui": "vite build",
+    "dist": "npm run build:ui && electron-builder --win",
+    "dist:installer": "npm run build:ui && electron-builder --win nsis",
+    "dist:portable": "npm run build:ui && electron-builder --win portable",
     "server": "node server/index.js",
     "build:native": "C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\csc.exe /nologo /optimize+ /platform:x86 /target:exe /out:server\\native\\spooler_bridge.exe server\\native\\SpoolerBridge.cs"
   },
@@ -21,6 +25,75 @@
   },
   "devDependencies": {
     "electron": "^44.7.2",
+    "electron-builder": "^26.18.0",
     "vite": "^8.3.4"
+  },
+  "build": {
+    "appId": "com.trel.epsonuniversaltool",
+    "productName": "Trel- Epson Universal Tool",
+    "copyright": "Copyright © 2026 Trel",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "server/**/*",
+      "data/**/*",
+      "electron/**/*",
+      "Logo.png",
+      "app_icon.ico",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "server/native/spooler_bridge.exe",
+        "to": "server/native/spooler_bridge.exe"
+      },
+      {
+        "from": "data/models_db.json",
+        "to": "data/models_db.json"
+      },
+      {
+        "from": "Logo.png",
+        "to": "Logo.png"
+      },
+      {
+        "from": "app_icon.ico",
+        "to": "app_icon.ico"
+      }
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "server/native/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "app_icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Trel- Epson Universal Tool",
+      "runAfterFinish": true
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}.${ext}"
+    }
   }
 }

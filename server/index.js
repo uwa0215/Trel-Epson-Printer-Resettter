@@ -30,7 +30,11 @@ wss.on('error', (err) => {
 app.use(express.json());
 
 // Load 234 Epson Models Database
-const modelsDbPath = path.join(__dirname, '..', 'data', 'models_db.json');
+let modelsDbPath = path.join(__dirname, '..', 'data', 'models_db.json');
+if (!fs.existsSync(modelsDbPath) && process.resourcesPath) {
+  const resPath = path.join(process.resourcesPath, 'data', 'models_db.json');
+  if (fs.existsSync(resPath)) modelsDbPath = resPath;
+}
 let modelsDatabase = [];
 let modelsMap = new Map();
 

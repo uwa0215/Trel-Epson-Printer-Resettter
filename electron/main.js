@@ -85,9 +85,13 @@ async function createWindow() {
   try {
     const activePort = await startBackendServer();
 
-    const iconPng = path.join(__dirname, '..', 'Logo.png');
-    const iconIco = path.join(__dirname, '..', 'app_icon.ico');
-    const iconPath = fs.existsSync(iconPng) ? iconPng : iconIco;
+    const iconCandidates = [
+      path.join(__dirname, '..', 'app_icon.ico'),
+      path.join(__dirname, '..', 'Logo.png'),
+      process.resourcesPath ? path.join(process.resourcesPath, 'app_icon.ico') : null,
+      process.resourcesPath ? path.join(process.resourcesPath, 'Logo.png') : null
+    ].filter(Boolean);
+    const iconPath = iconCandidates.find(p => fs.existsSync(p)) || null;
 
     mainWindow = new BrowserWindow({
       width: 1280,

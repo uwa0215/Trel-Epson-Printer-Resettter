@@ -10,8 +10,25 @@ const fs = require('fs');
 const EpsonProtocolEngine = require('./epson-protocol');
 
 class SpoolerBridge {
+  resolveExePath() {
+    const candidates = [
+      path.join(__dirname, 'native', 'spooler_bridge.exe'),
+      path.join(__dirname, 'native', 'spooler_bridge.exe').replace('app.asar', 'app.asar.unpacked'),
+      process.resourcesPath ? path.join(process.resourcesPath, 'app.asar.unpacked', 'server', 'native', 'spooler_bridge.exe') : null,
+      process.resourcesPath ? path.join(process.resourcesPath, 'server', 'native', 'spooler_bridge.exe') : null,
+      path.join(process.cwd(), 'server', 'native', 'spooler_bridge.exe')
+    ].filter(Boolean);
+
+    for (const p of candidates) {
+      if (fs.existsSync(p)) {
+        return p;
+      }
+    }
+    return candidates[0];
+  }
+
   constructor() {
-    this.exePath = path.join(__dirname, 'native', 'spooler_bridge.exe');
+    this.exePath = this.resolveExePath();
     this.hasNativeExe = fs.existsSync(this.exePath);
     this.simulatedPrinters = {};
   }
@@ -20,10 +37,10 @@ class SpoolerBridge {
    * Executes a command on the native spooler bridge executable (serialized to prevent port collision)
    */
   async execNative(args) {
-    if (!this.hasNativeExe) {
-      if (fs.existsSync(this.exePath)) {
-        this.hasNativeExe = true;
-      } else {
+    if (!this.hasNativeExe || !fs.existsSync(this.exePath)) {
+      this.exePath = this.resolveExePath();
+      this.hasNativeExe = fs.existsSync(this.exePath);
+      if (!this.hasNativeExe) {
         throw new Error('Native spooler bridge executable not found');
       }
     }

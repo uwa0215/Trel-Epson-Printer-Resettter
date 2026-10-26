@@ -8,9 +8,22 @@ const path = require('path');
 
 class BackupManager {
   constructor(backupDir) {
-    this.backupDir = backupDir || path.join(process.cwd(), 'backups');
+    if (backupDir) {
+      this.backupDir = backupDir;
+    } else if (process.env.APPDATA) {
+      this.backupDir = path.join(process.env.APPDATA, 'TrelEpsonUniversalTool', 'backups');
+    } else {
+      this.backupDir = path.join(process.cwd(), 'backups');
+    }
     if (!fs.existsSync(this.backupDir)) {
-      fs.mkdirSync(this.backupDir, { recursive: true });
+      try {
+        fs.mkdirSync(this.backupDir, { recursive: true });
+      } catch (e) {
+        this.backupDir = path.join(process.cwd(), 'backups');
+        if (!fs.existsSync(this.backupDir)) {
+          fs.mkdirSync(this.backupDir, { recursive: true });
+        }
+      }
     }
   }
 
