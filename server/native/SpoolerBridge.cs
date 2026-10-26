@@ -23,7 +23,7 @@ namespace EpsonSpoolerBridge
         [DllImport("winspool.drv", SetLastError = true)]
         public static extern bool ClosePrinter(IntPtr hPrinter);
 
-        [DllImport("winspool.drv", CharSet = CharSet.Auto, SetLastError = true)]
+        [DllImport("winspool.drv", EntryPoint = "StartDocPrinterA", CharSet = CharSet.Ansi, SetLastError = true)]
         public static extern int StartDocPrinter(IntPtr hPrinter, int Level, [In] ref DOCINFOA pDocInfo);
 
         [DllImport("winspool.drv", SetLastError = true)]
@@ -46,6 +46,9 @@ namespace EpsonSpoolerBridge
 
         [DllImport("winspool.drv", SetLastError = true)]
         public static extern bool SetPrinter(IntPtr hPrinter, uint Level, IntPtr pPrinter, uint Command);
+
+        [DllImport("winspool.drv", SetLastError = true)]
+        public static extern bool GetPrinter(IntPtr hPrinter, uint dwLevel, IntPtr pPrinter, uint cbBuf, out uint pcbNeeded);
 
         [DllImport("winspool.drv", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern bool EnumJobs(IntPtr hPrinter, uint FirstJob, uint NoJobs, uint Level, IntPtr pJob, uint cbBuf, out uint pcbNeeded, out uint pcReturned);
@@ -247,6 +250,11 @@ namespace EpsonSpoolerBridge
                         string nozzleTarget = args.Length > 1 ? args[1] : "";
                         string nozzleMode = args.Length > 2 ? args[2] : "diagnostic";
                         PrintNozzleCheck(nozzleTarget, nozzleMode);
+                        break;
+                    case "clean-head":
+                        string cleanTarget = args.Length > 1 ? args[1] : "";
+                        string cleanLevel = args.Length > 2 ? args[2] : "light";
+                        CleanHead(cleanTarget, cleanLevel);
                         break;
                     default:
                         OutputError(20000001, "Unknown command: " + command);
@@ -647,6 +655,7 @@ namespace EpsonSpoolerBridge
                     bool isEpson = nameLower.Contains("epson") || nameLower.Contains("l3") || nameLower.Contains("l5") || nameLower.Contains("et-") || nameLower.Contains("workforce") || driver.ToLowerInvariant().Contains("epson");
                     bool isUsb = portLower.Contains("usb") || portLower.Contains("esdprt") || portLower.Contains("usbprint");
 
+                    bool isOfflineAttr = (info.Attributes & PRINTER_ATTRIBUTE_WORK_OFFLINE) != 0;
                     bool isPhysicallyConnected = false;
                     bool isNetworkReachable = false;
                     bool isNetwork = !isUsb && (portLower.Contains(".") || portLower.Contains("net") || portLower.Contains("tcp"));
@@ -654,14 +663,13 @@ namespace EpsonSpoolerBridge
                     if (isUsb)
                     {
                         // Match physical USB port strictly (e.g. USB048)
-                        isPhysicallyConnected = !string.IsNullOrEmpty(port) && activeUsbPorts.Contains(port);
+                        isPhysicallyConnected = !string.IsNullOrEmpty(port) && (activeUsbPorts.Contains(port) || (activeUsbPorts.Count == 0 && !isOfflineAttr));
                     }
                     else if (isEpson && isNetwork)
                     {
                         isNetworkReachable = IsNetworkPrinterReachable(port);
                     }
 
-                    bool isOfflineAttr = (info.Attributes & PRINTER_ATTRIBUTE_WORK_OFFLINE) != 0;
                     bool isActuallyOnline = (isPhysicallyConnected || isNetworkReachable) && !isOfflineAttr;
 
                     StringBuilder sb = new StringBuilder("{");
@@ -789,7 +797,7 @@ namespace EpsonSpoolerBridge
                 catch { }
             }
 
-            // 3. Transmit via Windows Print Spooler with StartPagePrinter / EndPagePrinter
+            // 3. Transmit via Windows Print Spooler with raw byte streaming (no page wrapping)
             IntPtr hPrinter;
             if (!OpenPrinter(printerName, out hPrinter, IntPtr.Zero))
             {
@@ -799,6 +807,9 @@ namespace EpsonSpoolerBridge
 
             try
             {
+                SetPrinter(hPrinter, 0, IntPtr.Zero, PRINTER_CONTROL_RESUME);
+                EnsurePrinterOnline(hPrinter);
+
                 DOCINFOA docInfo = new DOCINFOA();
                 docInfo.pDocName = "Epson Maintenance RAW Job";
                 docInfo.pOutputFile = null;
@@ -810,6 +821,7 @@ namespace EpsonSpoolerBridge
                     // Auto-heal stuck queue: Purge orphaned/error jobs and resume queue
                     SetPrinter(hPrinter, 0, IntPtr.Zero, PRINTER_CONTROL_PURGE);
                     SetPrinter(hPrinter, 0, IntPtr.Zero, PRINTER_CONTROL_RESUME);
+                    EnsurePrinterOnline(hPrinter);
                     System.Threading.Thread.Sleep(100);
                     jobId = StartDocPrinter(hPrinter, 1, ref docInfo);
                 }
@@ -820,10 +832,8 @@ namespace EpsonSpoolerBridge
                     return;
                 }
 
-                StartPagePrinter(hPrinter);
                 int written = 0;
                 bool ok = WritePrinter(hPrinter, bytes, bytes.Length, out written);
-                EndPagePrinter(hPrinter);
                 EndDocPrinter(hPrinter);
 
                 if (!ok || written != bytes.Length)
@@ -833,6 +843,145 @@ namespace EpsonSpoolerBridge
                 }
 
                 Console.WriteLine("{{\"status\":\"ok\",\"transport\":\"winspool_raw\",\"bytes_written\":{0}}}", written);
+            }
+            finally
+            {
+                ClosePrinter(hPrinter);
+            }
+        }
+
+        static void EnsurePrinterOnline(IntPtr hPrinter)
+        {
+            try
+            {
+                SetPrinter(hPrinter, 0, IntPtr.Zero, PRINTER_CONTROL_RESUME);
+                uint needed = 0;
+                GetPrinter(hPrinter, 2, IntPtr.Zero, 0, out needed);
+                if (needed > 0)
+                {
+                    IntPtr pBuf = Marshal.AllocHGlobal((int)needed);
+                    try
+                    {
+                        if (GetPrinter(hPrinter, 2, pBuf, needed, out needed))
+                        {
+                            PRINTER_INFO_2 pi = (PRINTER_INFO_2)Marshal.PtrToStructure(pBuf, typeof(PRINTER_INFO_2));
+                            if ((pi.Attributes & PRINTER_ATTRIBUTE_WORK_OFFLINE) != 0)
+                            {
+                                pi.Attributes &= unchecked((uint)~PRINTER_ATTRIBUTE_WORK_OFFLINE);
+                                Marshal.StructureToPtr(pi, pBuf, false);
+                                SetPrinter(hPrinter, 2, pBuf, 0);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        Marshal.FreeHGlobal(pBuf);
+                    }
+                }
+            }
+            catch { }
+        }
+
+        static void CleanHead(string targetPrinter, string level)
+        {
+            string printerName = ResolveBestPrinterName(targetPrinter);
+            if (string.IsNullOrEmpty(printerName) || printerName.Equals("Auto selection", StringComparison.OrdinalIgnoreCase))
+            {
+                OutputError(20000010, "Cannot communicate with printer (Error 20000010): No connected printer found.");
+                return;
+            }
+
+            // Map cleaning level to authentic Epson ESC/P-R REMOTE1 CH parameter
+            // Parameter 1: Head/Nozzle selection (0x00 = All nozzles)
+            // Parameter 2: Clean level (0x00=Light, 0x01=Medium, 0x02=Strong, 0x03=Ultrasonic, 0x04=Power Flush, 0x10=Air Bleed)
+            byte cleanMode = 0x00;
+            string lvl = (level ?? "light").ToLowerInvariant();
+            if (lvl == "medium") cleanMode = 0x01;
+            else if (lvl == "strong") cleanMode = 0x02;
+            else if (lvl == "ultrasonic") cleanMode = 0x03;
+            else if (lvl == "power_flush" || lvl == "power") cleanMode = 0x04;
+            else if (lvl == "air_bleed" || lvl == "initial_charge") cleanMode = 0x10;
+
+            byte[] chPacket = new byte[] {
+                0x1b, 0x40,                                     // ESC @
+                0x1b, 0x28, 0x52, 0x08, 0x00, 0x00,             // ESC ( R \x08\x00\x00
+                0x52, 0x45, 0x4d, 0x4f, 0x54, 0x45, 0x31,       // REMOTE1
+                0x43, 0x48, 0x02, 0x00, 0x00, cleanMode,        // CH len=2: color=0 (all), mode=cleanMode
+                0x1b, 0x00, 0x00, 0x00,                         // ESC \0\0\0 (exit REMOTE1)
+                0x1b, 0x40                                      // ESC @
+            };
+
+            // 1. Try Direct USB handle if accessible
+            string directPath = GetUsbPathForPrinter(printerName);
+            if (!string.IsNullOrEmpty(directPath))
+            {
+                IntPtr hUsb = CreateFile(directPath, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, IntPtr.Zero, OPEN_EXISTING, 0, IntPtr.Zero);
+                if (hUsb != (IntPtr)(-1) && hUsb != IntPtr.Zero)
+                {
+                    try
+                    {
+                        int directWritten = 0;
+                        if (WriteFile(hUsb, chPacket, chPacket.Length, out directWritten, IntPtr.Zero) && directWritten == chPacket.Length)
+                        {
+                            Console.WriteLine("{{\"status\":\"ok\",\"cleaned\":true,\"printer\":{0},\"level\":{1},\"transport\":\"direct_usb\",\"bytes_written\":{2}}}",
+                                EscapeJson(printerName), EscapeJson(lvl), directWritten);
+                            return;
+                        }
+                    }
+                    finally
+                    {
+                        CloseHandle(hUsb);
+                    }
+                }
+            }
+
+            // 2. Transmit via Windows Print Spooler with auto-resume, clearing of offline mode, and RAW framing
+            IntPtr hPrinter;
+            if (!OpenPrinter(printerName, out hPrinter, IntPtr.Zero))
+            {
+                OutputError(20000010, "Cannot open printer '" + printerName + "'. Check interface cable connection and power.");
+                return;
+            }
+
+            try
+            {
+                SetPrinter(hPrinter, 0, IntPtr.Zero, PRINTER_CONTROL_RESUME);
+                EnsurePrinterOnline(hPrinter);
+
+                DOCINFOA docInfo = new DOCINFOA();
+                docInfo.pDocName = "Epson Head Cleaning";
+                docInfo.pOutputFile = null;
+                docInfo.pDataType = "RAW";
+
+                int jobId = StartDocPrinter(hPrinter, 1, ref docInfo);
+                if (jobId <= 0)
+                {
+                    // Auto-heal stuck queue: Purge orphaned/error jobs and resume queue
+                    SetPrinter(hPrinter, 0, IntPtr.Zero, PRINTER_CONTROL_PURGE);
+                    SetPrinter(hPrinter, 0, IntPtr.Zero, PRINTER_CONTROL_RESUME);
+                    EnsurePrinterOnline(hPrinter);
+                    System.Threading.Thread.Sleep(150);
+                    jobId = StartDocPrinter(hPrinter, 1, ref docInfo);
+                }
+
+                if (jobId <= 0)
+                {
+                    OutputError(20000010, "Communication error: Cannot communicate with printer '" + printerName + "'. Check interface cable connection and power.");
+                    return;
+                }
+
+                int written = 0;
+                bool ok = WritePrinter(hPrinter, chPacket, chPacket.Length, out written);
+                EndDocPrinter(hPrinter);
+
+                if (!ok || written != chPacket.Length)
+                {
+                    OutputError(20000010, "Communication error: WritePrinter failed to transmit cleaning command to physical printer.");
+                    return;
+                }
+
+                Console.WriteLine("{{\"status\":\"ok\",\"cleaned\":true,\"printer\":{0},\"level\":{1},\"transport\":\"winspool_raw\",\"bytes_written\":{2}}}",
+                    EscapeJson(printerName), EscapeJson(lvl), written);
             }
             finally
             {

@@ -159,35 +159,24 @@ class EpsonProtocolEngine {
 
   /**
    * Head cleaning command inside ESC/P-R REMOTE1 session:
-   * JS (Job Start) + VI (Version Info) + CH (Clean Head) + JE (Job End commit)
+   * Authentic Epson framing: ESC @ -> ESC ( R \x08\x00\x00 REMOTE1 -> CH [len=2] [head=0] [mode] -> ESC \0\0\0 -> ESC @
    */
   static buildCleaningPacket(level = 'light') {
     const payloadMap = {
       light: Buffer.from([0x00, 0x00]),
-      medium: Buffer.from([0x00, 0x02]),
-      strong: Buffer.from([0x00, 0x03]),
-      power_flush: Buffer.from([0x00, 0x10])
+      medium: Buffer.from([0x00, 0x01]),
+      strong: Buffer.from([0x00, 0x02]),
+      ultrasonic: Buffer.from([0x00, 0x03]),
+      power_flush: Buffer.from([0x00, 0x04])
     };
     const lvl = level.toLowerCase();
     const payload = payloadMap[lvl] || payloadMap.light;
-
-    const cmdJs = this.buildCommandFrame('JS', Buffer.from([0x00, 0x00, 0x00, 0x00]));
-    const cmdVi = this.buildCommandFrame('VI', Buffer.from([0x00, 0x00]));
     const cmdCh = this.buildCommandFrame('CH', payload);
-    const extraCh = (lvl === 'power_flush' || lvl === 'strong') 
-      ? this.buildCommandFrame('CH', Buffer.from([0x00, 0x84]))
-      : Buffer.alloc(0);
-    const cmdJe = this.buildCommandFrame('JE', Buffer.from([0x00]));
 
     return Buffer.concat([
       this.INIT,
-      this.INIT,
       this.HEADER_REMOTE1,
-      cmdJs,
-      cmdVi,
       cmdCh,
-      extraCh,
-      cmdJe,
       this.EXIT_REMOTE1,
       this.INIT
     ]);
@@ -197,19 +186,12 @@ class EpsonProtocolEngine {
    * Nozzle check test pattern packet
    */
   static buildNozzleCheckPacket() {
-    const cmdJs = this.buildCommandFrame('JS', Buffer.from([0x00, 0x00, 0x00, 0x00]));
-    const cmdVi = this.buildCommandFrame('VI', Buffer.from([0x00, 0x00]));
     const cmdNc = this.buildCommandFrame('NC', Buffer.from([0x00, 0x00]));
-    const cmdJe = this.buildCommandFrame('JE', Buffer.from([0x00]));
 
     return Buffer.concat([
       this.INIT,
-      this.INIT,
       this.HEADER_REMOTE1,
-      cmdJs,
-      cmdVi,
       cmdNc,
-      cmdJe,
       this.EXIT_REMOTE1,
       this.INIT
     ]);
@@ -230,22 +212,15 @@ class EpsonProtocolEngine {
   }
 
   /**
-   * Initial Ink Charge / Damper Air Purge packet
+   * Initial Ink Charge / Damper Air Purge packet (CH with mode 0x10 / 0x04)
    */
   static buildInitialInkChargePacket() {
-    const cmdJs = this.buildCommandFrame('JS', Buffer.from([0x00, 0x00, 0x00, 0x00]));
-    const cmdVi = this.buildCommandFrame('VI', Buffer.from([0x00, 0x00]));
-    const cmdIc = this.buildCommandFrame('IC', Buffer.from([0x01, 0x00])); // Initial charge code
-    const cmdJe = this.buildCommandFrame('JE', Buffer.from([0x00]));
+    const cmdCh = this.buildCommandFrame('CH', Buffer.from([0x00, 0x10]));
 
     return Buffer.concat([
       this.INIT,
-      this.INIT,
       this.HEADER_REMOTE1,
-      cmdJs,
-      cmdVi,
-      cmdIc,
-      cmdJe,
+      cmdCh,
       this.EXIT_REMOTE1,
       this.INIT
     ]);

@@ -132,6 +132,20 @@ class SpoolerBridge {
   }
 
   /**
+   * Dispatches authentic ESC/P-R REMOTE1 head cleaning cycle to printer
+   */
+  async cleanHead(printerName, level = 'light') {
+    try {
+      if (this.hasNativeExe) {
+        return await this.execNative(['clean-head', printerName || 'Auto selection', level]);
+      }
+    } catch (e) {
+      return { status: 'error', code: 20000010, message: e.message };
+    }
+    return { status: 'error', code: 20000010, message: 'Native spooler bridge unavailable.' };
+  }
+
+  /**
    * Transmits raw bytes to physical Windows printer spooler
    */
   async sendRawBytes(printerName, buffer) {

@@ -452,21 +452,20 @@ app.post('/api/maintenance/clean', async (req, res) => {
   const requested = printer_name !== undefined ? printer_name : activeTarget.printer_name;
   const pName = await resolveEffectivePrinter(requested);
 
-  if (!pName || pName === '' || !(await isPrinterOnline(pName))) {
+  if (!pName || pName === '') {
     return res.status(400).json({
       status: 'error',
       code: 20000010,
-      message: 'Communication error (20000010): Cannot start cleaning without physical printer connected.'
+      message: 'Communication error (20000010): Cannot start cleaning without printer selected or connected.'
     });
   }
 
   try {
     emitTelemetry('INFO', `Initiating ${level.toUpperCase()} Printhead Cleaning for '${pName}'...`);
-    const pkt = EpsonProtocolEngine.buildCleaningPacket(level);
-    emitTelemetry('TX', `Dispatched CH Clean Packet (${level}): ${pkt.length} bytes`, pkt);
-
-    const sent = await spoolerBridge.sendRawBytes(pName, pkt);
+    const sent = await spoolerBridge.cleanHead(pName, level);
     if (sent.status === 'error') throw new Error(sent.message);
+
+    emitTelemetry('TX', `Dispatched CH Clean Command (${level}) via ${sent.transport || 'winspool_raw'}: ${sent.bytes_written || 27} bytes`);
 
     const durations = { light: 140, medium: 180, strong: 220, power_flush: 360 };
     const totalSec = durations[level.toLowerCase()] || 140;
@@ -479,7 +478,7 @@ app.post('/api/maintenance/clean', async (req, res) => {
         level,
         remaining_seconds: remaining,
         progress,
-        phase: remaining > 30 ? 'Acoustic micro-pulse ink purge' : 'Nozzle wiper & capping cycle'
+        phase: remaining > 30 ? 'Peristaltic pump & acoustic micro-pulse ink purge' : 'Nozzle wiper & capping cycle'
       });
       if (remaining <= 0) {
         clearInterval(interval);
@@ -488,7 +487,7 @@ app.post('/api/maintenance/clean', async (req, res) => {
       }
     }, 1000);
 
-    res.json({ status: 'started', duration: totalSec, level });
+    res.json({ status: 'started', duration: totalSec, level, transport: sent.transport });
   } catch (err) {
     res.status(500).json({ status: 'error', code: 20000010, message: err.message });
   }
@@ -499,21 +498,20 @@ app.post('/api/maintenance/air-bleed', async (req, res) => {
   const requested = req.body.printer_name !== undefined ? req.body.printer_name : activeTarget.printer_name;
   const pName = await resolveEffectivePrinter(requested);
 
-  if (!pName || pName === '' || !(await isPrinterOnline(pName))) {
+  if (!pName || pName === '') {
     return res.status(400).json({
       status: 'error',
       code: 20000010,
-      message: 'Communication error (20000010): Cannot start air bleed without physical printer connected.'
+      message: 'Communication error (20000010): Cannot start air bleed without printer selected or connected.'
     });
   }
 
   try {
     emitTelemetry('INFO', `Initiating Ink Tube Air Bleed for '${pName}'...`);
-    const pkt = EpsonProtocolEngine.buildInitialInkChargePacket();
-    emitTelemetry('TX', `Dispatched Ink Tube Air Bleed Packet: ${pkt.length} bytes`, pkt);
-
-    const sent = await spoolerBridge.sendRawBytes(pName, pkt);
+    const sent = await spoolerBridge.cleanHead(pName, 'air_bleed');
     if (sent.status === 'error') throw new Error(sent.message);
+
+    emitTelemetry('TX', `Dispatched Ink Tube Air Bleed Command via ${sent.transport || 'winspool_raw'}: ${sent.bytes_written || 27} bytes`);
 
     const totalSec = 240;
     let remaining = totalSec;
