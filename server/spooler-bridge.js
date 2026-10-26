@@ -146,6 +146,23 @@ class SpoolerBridge {
   }
 
   /**
+   * Checks if printer hardware is physically active, processing, or has active spooler jobs
+   */
+  async isPrinterBusy(printerName) {
+    try {
+      if (this.hasNativeExe) {
+        const res = await this.execNative(['check-printer-busy', printerName || 'Auto selection']);
+        if (res && res.status === 'ok') {
+          return Boolean(res.busy);
+        }
+      }
+    } catch (e) {
+      console.warn('Native check-printer-busy failed:', e.message);
+    }
+    return false;
+  }
+
+  /**
    * Transmits raw bytes to physical Windows printer spooler
    */
   async sendRawBytes(printerName, buffer) {

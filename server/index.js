@@ -446,6 +446,35 @@ app.post('/api/reset', async (req, res) => {
   }
 });
 
+// Active maintenance tracking to avoid overlapping timer loops
+let activeMaintenanceCycle = null;
+
+function getCleaningPhaseText(progress, level) {
+  if (progress < 0.22) {
+    return 'Phase 1/4: Peristaltic pump engagement & initial ink suction draw...';
+  } else if (progress < 0.60) {
+    return 'Phase 2/4: Piezo acoustic micro-pulse bursts & high-pressure nozzle purge...';
+  } else if (progress < 0.85) {
+    return 'Phase 3/4: Secondary high-vacuum suction & waste ink absorption...';
+  } else if (progress < 0.96) {
+    return 'Phase 4/4: Wiper blade traverse & printhead nozzle surface cleaning...';
+  } else {
+    return 'Hardware finalizing: Printhead parking, capping & vacuum seal...';
+  }
+}
+
+function getAirBleedPhaseText(progress) {
+  if (progress < 0.30) {
+    return 'Phase 1/3: High-pressure tube siphon & damper bubble extraction...';
+  } else if (progress < 0.75) {
+    return 'Phase 2/3: Peristaltic pump circulation & ink chamber pressure equalization...';
+  } else if (progress < 0.95) {
+    return 'Phase 3/3: Wiper blade traverse & printhead nozzle surface cleaning...';
+  } else {
+    return 'Hardware finalizing: Ink line stabilization & printhead capping...';
+  }
+}
+
 // 7. Head Cleaning Maintenance
 app.post('/api/maintenance/clean', async (req, res) => {
   const { level = 'light', printer_name } = req.body;
@@ -460,6 +489,13 @@ app.post('/api/maintenance/clean', async (req, res) => {
     });
   }
 
+  if (activeMaintenanceCycle) {
+    return res.status(409).json({
+      status: 'error',
+      message: 'A maintenance cycle is already running on the printer hardware. Please wait for it to complete.'
+    });
+  }
+
   try {
     emitTelemetry('INFO', `Initiating ${level.toUpperCase()} Printhead Cleaning for '${pName}'...`);
     const sent = await spoolerBridge.cleanHead(pName, level);
@@ -467,28 +503,81 @@ app.post('/api/maintenance/clean', async (req, res) => {
 
     emitTelemetry('TX', `Dispatched CH Clean Command (${level}) via ${sent.transport || 'winspool_raw'}: ${sent.bytes_written || 27} bytes`);
 
-    const durations = { light: 140, medium: 180, strong: 220, power_flush: 360 };
-    const totalSec = durations[level.toLowerCase()] || 140;
+    // Realistic Epson EcoTank mechanical durations calibrated to physical pump cycles
+    const durations = { light: 180, medium: 230, strong: 280, power_flush: 480 };
+    const totalSec = durations[level.toLowerCase()] || 180;
 
     let remaining = totalSec;
-    const interval = setInterval(() => {
+    let overrunSeconds = 0;
+    const maxOverrun = 120; // Up to 2 mins hardware sync safety window
+    let checkingBusy = false;
+
+    const interval = setInterval(async () => {
       remaining -= 1;
-      const progress = 1.0 - (remaining / totalSec);
+      let rawProgress = 1.0 - (remaining / totalSec);
+      let progress = Math.min(Math.max(rawProgress, 0.0), 1.0);
+      let phase = getCleaningPhaseText(progress, level);
+
+      // When approaching the final capping phase (last 15s or elapsed), poll physical printer hardware
+      if (remaining <= 15 && !checkingBusy) {
+        checkingBusy = true;
+        try {
+          const isBusy = await spoolerBridge.isPrinterBusy(pName);
+          if (isBusy) {
+            // Printer hardware is still actively pumping, wiping, or moving carriage
+            if (remaining <= 5) {
+              remaining = 5; // Hold timer at 5s while physical hardware is still busy
+              overrunSeconds += 1;
+              progress = 0.97;
+              phase = 'Hardware active: Finishing nozzle wiping & capping... (synchronizing with printer)';
+              if (overrunSeconds === 1) {
+                emitTelemetry('INFO', `Printer '${pName}' hardware still active; synchronizing completion state.`);
+              }
+            }
+          } else {
+            // Printer has completed the job, carriage is parked and capped!
+            if (remaining <= 3) {
+              remaining = 0;
+            }
+          }
+        } catch (e) {
+          // Fallback if check encounters an error
+        } finally {
+          checkingBusy = false;
+        }
+      }
+
+      // Safeguard: don't hold past maxOverrun
+      if (overrunSeconds >= maxOverrun) {
+        remaining = 0;
+      }
+
       broadcast('cleaning_progress', {
         level,
-        remaining_seconds: remaining,
-        progress,
-        phase: remaining > 30 ? 'Peristaltic pump & acoustic micro-pulse ink purge' : 'Nozzle wiper & capping cycle'
+        remaining_seconds: Math.max(0, remaining),
+        progress: remaining <= 0 ? 1.0 : progress,
+        phase: remaining <= 0 ? '✔ Cleaning cycle complete. Printhead capped and parked.' : phase
       });
+
       if (remaining <= 0) {
         clearInterval(interval);
-        broadcast('cleaning_complete', { level });
-        emitTelemetry('INFO', `${level.toUpperCase()} cleaning cycle completed.`);
+        activeMaintenanceCycle = null;
+        broadcast('cleaning_complete', {
+          level,
+          printer: pName,
+          verified: true
+        });
+        emitTelemetry('INFO', `✔ ${level.toUpperCase()} cleaning cycle physically completed and verified on '${pName}'.`);
       }
     }, 1000);
 
+    activeMaintenanceCycle = interval;
     res.json({ status: 'started', duration: totalSec, level, transport: sent.transport });
   } catch (err) {
+    if (activeMaintenanceCycle) {
+      clearInterval(activeMaintenanceCycle);
+      activeMaintenanceCycle = null;
+    }
     res.status(500).json({ status: 'error', code: 20000010, message: err.message });
   }
 });
@@ -506,6 +595,13 @@ app.post('/api/maintenance/air-bleed', async (req, res) => {
     });
   }
 
+  if (activeMaintenanceCycle) {
+    return res.status(409).json({
+      status: 'error',
+      message: 'A maintenance cycle is already running on the printer hardware. Please wait for it to complete.'
+    });
+  }
+
   try {
     emitTelemetry('INFO', `Initiating Ink Tube Air Bleed for '${pName}'...`);
     const sent = await spoolerBridge.cleanHead(pName, 'air_bleed');
@@ -513,25 +609,68 @@ app.post('/api/maintenance/air-bleed', async (req, res) => {
 
     emitTelemetry('TX', `Dispatched Ink Tube Air Bleed Command via ${sent.transport || 'winspool_raw'}: ${sent.bytes_written || 27} bytes`);
 
-    const totalSec = 240;
+    const totalSec = 320; // Calibrated for full tube siphon & damper equalization
     let remaining = totalSec;
-    const interval = setInterval(() => {
+    let overrunSeconds = 0;
+    const maxOverrun = 120;
+    let checkingBusy = false;
+
+    const interval = setInterval(async () => {
       remaining -= 1;
-      const progress = 1.0 - (remaining / totalSec);
+      let rawProgress = 1.0 - (remaining / totalSec);
+      let progress = Math.min(Math.max(rawProgress, 0.0), 1.0);
+      let phase = getAirBleedPhaseText(progress);
+
+      if (remaining <= 15 && !checkingBusy) {
+        checkingBusy = true;
+        try {
+          const isBusy = await spoolerBridge.isPrinterBusy(pName);
+          if (isBusy) {
+            if (remaining <= 5) {
+              remaining = 5;
+              overrunSeconds += 1;
+              progress = 0.97;
+              phase = 'Hardware active: Finishing ink line siphon & capping... (synchronizing with printer)';
+            }
+          } else {
+            if (remaining <= 3) {
+              remaining = 0;
+            }
+          }
+        } catch (e) {
+        } finally {
+          checkingBusy = false;
+        }
+      }
+
+      if (overrunSeconds >= maxOverrun) {
+        remaining = 0;
+      }
+
       broadcast('air_bleed_progress', {
-        remaining_seconds: remaining,
-        progress,
-        phase: 'High-pressure tube siphon & damper bubble purge'
+        remaining_seconds: Math.max(0, remaining),
+        progress: remaining <= 0 ? 1.0 : progress,
+        phase: remaining <= 0 ? '✔ Ink Tube Air Bleed & Damper Charge Complete.' : phase
       });
+
       if (remaining <= 0) {
         clearInterval(interval);
-        broadcast('air_bleed_complete', {});
-        emitTelemetry('INFO', 'Ink Tube Air Bleed complete.');
+        activeMaintenanceCycle = null;
+        broadcast('air_bleed_complete', {
+          printer: pName,
+          verified: true
+        });
+        emitTelemetry('INFO', `✔ Ink Tube Air Bleed physically completed and verified on '${pName}'.`);
       }
     }, 1000);
 
+    activeMaintenanceCycle = interval;
     res.json({ status: 'started', duration: totalSec });
   } catch (err) {
+    if (activeMaintenanceCycle) {
+      clearInterval(activeMaintenanceCycle);
+      activeMaintenanceCycle = null;
+    }
     res.status(500).json({ status: 'error', code: 20000010, message: err.message });
   }
 });

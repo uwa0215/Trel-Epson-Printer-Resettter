@@ -715,6 +715,35 @@ window.closeCommErrorModal = function() {
 // PRINTHEAD MAINTENANCE
 // ===================================================================
 
+function resetCleanModalUI(title, durationSec) {
+  const icon = document.getElementById('cleanModalIcon');
+  if (icon) {
+    icon.className = 'modal-icon-badge info';
+    icon.innerHTML = '<svg class="spin-slow" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>';
+  }
+  document.getElementById('cleanModalTitle').innerText = title;
+  const phaseEl = document.getElementById('cleanPhaseText');
+  if (phaseEl) {
+    phaseEl.innerText = 'Synchronizing with printer hardware...';
+    phaseEl.style.color = 'var(--accent-cyan)';
+  }
+  const timerEl = document.getElementById('cleanTimerVal');
+  if (timerEl) {
+    timerEl.innerText = `${durationSec}s`;
+    timerEl.style.color = 'var(--text-main)';
+  }
+  const bar = document.getElementById('cleanProgressBar');
+  if (bar) {
+    bar.style.width = '0%';
+    bar.style.background = 'var(--accent-cyan)';
+  }
+  const warn = document.getElementById('cleanWarningNote');
+  if (warn) warn.style.display = 'block';
+  const actions = document.getElementById('cleanModalActions');
+  if (actions) actions.style.display = 'none';
+  document.getElementById('cleanModal').classList.add('active');
+}
+
 window.startCleaning = async function(level) {
   if (!state.isConnected && !state.activePrinter) {
     openCommErrorModal('Communication error (Error code: 20000010)\n\nCannot communicate with printer. Turn on the printer and connect the USB interface cable.');
@@ -736,10 +765,7 @@ window.startCleaning = async function(level) {
       return;
     }
     if (data.status === 'started') {
-      document.getElementById('cleanModalTitle').innerText = `${level.toUpperCase()} Cleaning in Progress`;
-      document.getElementById('cleanTimerVal').innerText = `${data.duration}s`;
-      document.getElementById('cleanProgressBar').style.width = '0%';
-      document.getElementById('cleanModal').classList.add('active');
+      resetCleanModalUI(`${level.toUpperCase()} Cleaning in Progress`, data.duration);
     }
   } catch (err) {
     openCommErrorModal(`Communication error: ${err.message}`);
@@ -764,10 +790,7 @@ window.startAirBleed = async function() {
       return;
     }
     if (data.status === 'started') {
-      document.getElementById('cleanModalTitle').innerText = 'EcoTank Air Bleed in Progress';
-      document.getElementById('cleanTimerVal').innerText = `${data.duration}s`;
-      document.getElementById('cleanProgressBar').style.width = '0%';
-      document.getElementById('cleanModal').classList.add('active');
+      resetCleanModalUI('EcoTank Air Bleed in Progress', data.duration);
     }
   } catch (err) {
     openCommErrorModal(`Communication error: ${err.message}`);
@@ -775,16 +798,69 @@ window.startAirBleed = async function() {
 };
 
 function updateCleaningModal(remaining, progress, phase) {
-  document.getElementById('cleanTimerVal').innerText = `${remaining}s`;
-  document.getElementById('cleanProgressBar').style.width = `${Math.round(progress * 100)}%`;
-  if (phase) document.getElementById('cleanPhaseText').innerText = phase;
+  const timerEl = document.getElementById('cleanTimerVal');
+  const bar = document.getElementById('cleanProgressBar');
+  const phaseEl = document.getElementById('cleanPhaseText');
+
+  if (timerEl) {
+    if (remaining <= 5 && phase && phase.toLowerCase().includes('synchronizing')) {
+      timerEl.innerText = 'Finishing...';
+    } else {
+      timerEl.innerText = `${remaining}s`;
+    }
+  }
+
+  if (bar) {
+    bar.style.width = `${Math.min(100, Math.round(progress * 100))}%`;
+  }
+
+  if (phaseEl && phase) {
+    phaseEl.innerText = phase;
+  }
 }
 
 function finishCleaning(msg = 'Printhead Cleaning Complete!') {
-  document.getElementById('cleanModal').classList.remove('active');
   playSuccessChime();
-  alert(`✔ ${msg}`);
+
+  const icon = document.getElementById('cleanModalIcon');
+  if (icon) {
+    icon.className = 'modal-icon-badge success';
+    icon.innerHTML = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+  }
+
+  document.getElementById('cleanModalTitle').innerText = msg;
+  const phaseEl = document.getElementById('cleanPhaseText');
+  if (phaseEl) {
+    phaseEl.innerText = '✔ Hardware cycle complete. Printhead capped and parked safely.';
+    phaseEl.style.color = 'var(--accent-emerald)';
+  }
+
+  const timerEl = document.getElementById('cleanTimerVal');
+  if (timerEl) {
+    timerEl.innerHTML = '<span style="font-size: 30px; font-weight: 800; color: var(--accent-emerald); letter-spacing: 1px;">READY</span>';
+  }
+
+  const bar = document.getElementById('cleanProgressBar');
+  if (bar) {
+    bar.style.width = '100%';
+    bar.style.background = 'var(--accent-emerald)';
+  }
+
+  const warn = document.getElementById('cleanWarningNote');
+  if (warn) warn.style.display = 'none';
+
+  const actions = document.getElementById('cleanModalActions');
+  if (actions) actions.style.display = 'flex';
 }
+
+window.closeCleanModal = function() {
+  document.getElementById('cleanModal').classList.remove('active');
+};
+
+window.printNozzleCheckFromModal = function() {
+  window.closeCleanModal();
+  window.printNozzleCheck(false);
+};
 
 window.printNozzleCheck = async function(useRaster) {
   if (!state.isConnected) {

@@ -256,6 +256,10 @@ namespace EpsonSpoolerBridge
                         string cleanLevel = args.Length > 2 ? args[2] : "light";
                         CleanHead(cleanTarget, cleanLevel);
                         break;
+                    case "check-printer-busy":
+                        string busyTarget = args.Length > 1 ? args[1] : "";
+                        CheckPrinterBusy(busyTarget);
+                        break;
                     default:
                         OutputError(20000001, "Unknown command: " + command);
                         break;
@@ -989,6 +993,57 @@ namespace EpsonSpoolerBridge
             }
         }
 
+        static void CheckPrinterBusy(string targetPrinter)
+        {
+            string printerName = ResolveBestPrinterName(targetPrinter);
+            if (string.IsNullOrEmpty(printerName))
+            {
+                Console.WriteLine("{\"status\":\"ok\",\"busy\":false,\"jobs\":0,\"printer_status\":0}");
+                return;
+            }
+
+            IntPtr hPrinter;
+            if (!OpenPrinter(printerName, out hPrinter, IntPtr.Zero))
+            {
+                Console.WriteLine("{\"status\":\"ok\",\"busy\":false,\"jobs\":0,\"printer_status\":0}");
+                return;
+            }
+
+            try
+            {
+                uint needed = 0;
+                GetPrinter(hPrinter, 2, IntPtr.Zero, 0, out needed);
+                if (needed > 0)
+                {
+                    IntPtr pBuf = Marshal.AllocHGlobal((int)needed);
+                    try
+                    {
+                        if (GetPrinter(hPrinter, 2, pBuf, needed, out needed))
+                        {
+                            PRINTER_INFO_2 pi = (PRINTER_INFO_2)Marshal.PtrToStructure(pBuf, typeof(PRINTER_INFO_2));
+                            bool isBusyStatus = (pi.Status & (0x00000200 | 0x00000400 | 0x00004000 | 0x00080000 | 0x00008000)) != 0;
+                            bool hasJobs = pi.cJobs > 0;
+                            bool busy = isBusyStatus || hasJobs;
+
+                            Console.WriteLine("{{\"status\":\"ok\",\"busy\":{0},\"jobs\":{1},\"printer_status\":{2}}}",
+                                busy ? "true" : "false", pi.cJobs, pi.Status);
+                            return;
+                        }
+                    }
+                    finally
+                    {
+                        Marshal.FreeHGlobal(pBuf);
+                    }
+                }
+            }
+            finally
+            {
+                ClosePrinter(hPrinter);
+            }
+
+            Console.WriteLine("{\"status\":\"ok\",\"busy\":false,\"jobs\":0,\"printer_status\":0}");
+        }
+
         static void SendAndRead(string printerName, string hexPayload, int timeoutMs)
         {
             printerName = ResolveBestPrinterName(printerName);
@@ -1125,10 +1180,8 @@ namespace EpsonSpoolerBridge
                     return;
                 }
 
-                StartPagePrinter(hPrinter);
                 int written = 0;
                 bool ok = WritePrinter(hPrinter, bytes, bytes.Length, out written);
-                EndPagePrinter(hPrinter);
                 EndDocPrinter(hPrinter);
 
                 if (!ok || written == 0)
