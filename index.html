@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trel- Epson Universal Tool - Universal Maintenance & EEPROM Reset</title>
-  <meta name="description" content="Professional standalone Epson maintenance, diagnostic telemetry, and waste ink pad reset utility for 234 printer models.">
+  <title>Trel- Universal Tool - Universal Maintenance & EEPROM Reset</title>
+  <meta name="description" content="Professional standalone printer maintenance, diagnostic telemetry, and waste ink pad reset utility for 234 printer models.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -12,6 +12,9 @@
   <link rel="stylesheet" href="/src/styles.css">
 </head>
 <body>
+
+  <!-- Confetti Particle Burst Overlay Canvas -->
+  <canvas id="celebrationConfettiCanvas" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999; display: none;"></canvas>
 
   <!-- Ambient Glowing Background Orbs -->
   <div class="ambient-glow glow-1"></div>
@@ -42,10 +45,10 @@
       <div>
         <div class="brand-section">
           <div class="brand-logo-badge">
-            <img src="/Logo.png" alt="Trel- Epson Tool Logo" class="brand-logo-img">
+            <img src="/Logo.png" alt="Trel- Universal Tool Logo" class="brand-logo-img">
           </div>
           <div class="brand-text-block">
-            <div class="brand-title">Trel- Epson Tool</div>
+            <div class="brand-title">Trel- Universal Tool</div>
             <div class="brand-subtitle">Universal Core v3.0</div>
           </div>
           <button class="btn-icon sidebar-close-btn" id="btnCloseSidebar" title="Close Menu" aria-label="Close Menu">✕</button>
@@ -104,6 +107,24 @@
             </span>
             <span>NVRAM Vault</span>
           </div>
+          <div class="nav-item" data-tab="eeprom">
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <path d="M6 8h4M14 8h4M6 12h4M14 12h4M6 16h4M14 16h4"></path>
+              </svg>
+            </span>
+            <span>EEPROM Hex Inspector</span>
+          </div>
+          <div class="nav-item" data-tab="telemetry">
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="4 17 10 11 4 5"></polyline>
+                <line x1="12" y1="19" x2="20" y2="19"></line>
+              </svg>
+            </span>
+            <span>Telemetry Terminal</span>
+          </div>
           <div class="nav-item" data-tab="certificate">
             <span class="nav-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -146,7 +167,7 @@
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
               </svg>
             </span>
-            <span>Trel- Epson</span>
+            <span>Trel- Universal</span>
           </div>
 
           <!-- Connection Status Pill -->
@@ -177,6 +198,28 @@
             </select>
           </div>
           <div class="header-actions-group">
+            <button class="btn-icon" id="btnToggleTheme" onclick="toggleTheme()" title="Toggle Dark / Light Studio Theme">
+              <svg id="iconThemeSun" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+              <svg id="iconThemeMoon" style="display: none;" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+              </svg>
+            </button>
+            <button class="btn-icon" id="btnToggleSound" onclick="toggleSoundMute()" title="Toggle UI Audio Feedback">
+              <svg id="iconSoundOn" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              </svg>
+            </button>
             <button class="btn-icon" id="btnRefreshPrinters" title="Re-scan USB & Hardware Ports">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
@@ -208,8 +251,8 @@
                 </svg>
               </span>
               <div>
-                <div class="diag-headline" id="diagTitle">No Physical Epson Printer Detected</div>
-                <div class="diag-subline" id="diagDesc">Connect your Epson printer via USB cable and turn power ON to read or reset counters.</div>
+                <div class="diag-headline" id="diagTitle">No Physical Printer Detected</div>
+                <div class="diag-subline" id="diagDesc">Connect your printer via USB cable and turn power ON to read or reset counters.</div>
               </div>
             </div>
             <button class="btn btn-secondary" id="btnQuickPurge" style="font-size: 12px; padding: 7px 14px;">
@@ -241,12 +284,6 @@
               <div class="gauge-center-wrapper">
                 <div class="radial-gauge-container">
                   <svg class="radial-svg" viewBox="0 0 200 200">
-                    <defs>
-                      <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stop-color="#0284c7" />
-                        <stop offset="100%" stop-color="#0ea5e9" />
-                      </linearGradient>
-                    </defs>
                     <circle class="gauge-track" cx="100" cy="100" r="80"></circle>
                     <circle class="gauge-fill" id="radialGaugeCircle" cx="100" cy="100" r="80"
                       stroke-dasharray="502.65" stroke-dashoffset="502.65"></circle>
@@ -330,14 +367,14 @@
 
               <!-- Authentic AdjProg Action Buttons: [Check] and [Initialize] -->
               <div class="counter-action-grid">
-                <button class="btn btn-secondary btn-check-action" id="btnCheckCounters" title="Send factory read packet to query current counter registers">
+                <button class="btn btn-secondary btn-check-action" id="btnCheckCounters" onclick="onCheckCounters()" title="Send factory read packet to query current counter registers">
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                   </svg>
                   <span>Check (Read)</span>
                 </button>
-                <button class="btn btn-danger btn-reset-action" id="btnOpenResetModal" title="Reset selected waste counters to 0%">
+                <button class="btn btn-danger btn-reset-action" id="btnOpenResetModal" onclick="onOpenInitModal()" title="Reset selected waste counters to 0%">
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                   </svg>
@@ -489,7 +526,15 @@
                 </div>
                 <span>Printhead Cleaning & Purge Cycles</span>
               </div>
-              <span class="badge-tag">CH Command Framing</span>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <button id="btnEmergencyStopClean" class="btn btn-danger-soft btn-sm" onclick="stopCleaningNow()" title="Immediately stop any ongoing cleaning and purge printer buffer">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                    <rect x="5" y="5" width="14" height="14" rx="2"></rect>
+                  </svg>
+                  <span>Stop Ongoing Cleaning</span>
+                </button>
+                <span class="badge-tag">CH Command Framing</span>
+              </div>
             </div>
 
             <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">
@@ -505,7 +550,7 @@
                         <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"></path>
                       </svg>
                     </div>
-                    <span class="duration-pill">~180s</span>
+                    <span class="duration-pill">~120s</span>
                   </div>
                   <h4>Routine Light Clean</h4>
                   <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 16px;">Quick acoustic micro-pulse wiper cycle for minor streaks.</p>
@@ -526,7 +571,7 @@
                         <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
                       </svg>
                     </div>
-                    <span class="duration-pill">~230s</span>
+                    <span class="duration-pill">~135s</span>
                   </div>
                   <h4>Medium Deep Clean</h4>
                   <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 16px;">Standard intensive suction cycle for missing color bands.</p>
@@ -547,7 +592,7 @@
                         <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
                       </svg>
                     </div>
-                    <span class="duration-pill">~280s</span>
+                    <span class="duration-pill">~155s</span>
                   </div>
                   <h4>Intensive Ultrasonic Purge</h4>
                   <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 16px;">High-pressure piezo pulse for stubborn nozzle clogs.</p>
@@ -570,7 +615,7 @@
                         <path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"></path>
                       </svg>
                     </div>
-                    <span class="duration-pill rose">~480s</span>
+                    <span class="duration-pill rose">~200s</span>
                   </div>
                   <h4>Heavy Power Ink Flush</h4>
                   <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 16px;">Full ink recharge cycle across all dampers and tubes.</p>
@@ -589,7 +634,7 @@
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M18 6L6 18M9 4l11 11M14 2l8 8M3 21l3-3"></path>
                 </svg>
-                <span>EcoTank Air Bleed & Damper Charge (~320s)</span>
+                <span>EcoTank Air Bleed & Damper Charge (~160s)</span>
               </button>
               <button class="btn btn-primary" onclick="printNozzleCheck(false)">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -738,7 +783,11 @@
             <div class="doctor-scan-header" id="doctorSummaryBanner">
               <div style="display: flex; align-items: center; gap: 14px;">
                 <div class="doctor-pulse-badge" id="doctorStatusIcon">
-                  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <div class="doctor-radar-scope" id="doctorRadarScope">
+                    <div class="radar-sweep-beam"></div>
+                    <div class="radar-reticle-ring"></div>
+                  </div>
+                  <svg class="doctor-badge-svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
                   </svg>
                 </div>
@@ -855,7 +904,7 @@
                     <polyline points="2 12 12 17 22 12"></polyline>
                   </svg>
                 </div>
-                <span>Supported Epson Models Catalog</span>
+                <span>Supported Models Catalog</span>
               </div>
               <span class="badge-tag success" id="modelsTotalCount">234 Models Calibrated</span>
             </div>
@@ -908,21 +957,186 @@
                 </div>
                 <span>NVRAM EEPROM Safety Vault & Rollback</span>
               </div>
-              <button class="btn btn-primary" onclick="createManualBackup()">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                <span>Create Manual Snapshot</span>
-              </button>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <input type="file" id="importBackupInput" accept=".json" style="display: none;" onchange="importBackupFile(event)">
+                <button class="btn btn-secondary" onclick="document.getElementById('importBackupInput').click()">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                  <span>Import Snapshot (.json)</span>
+                </button>
+                <button class="btn btn-primary" onclick="createManualBackup()">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  <span>Create Manual Snapshot</span>
+                </button>
+              </div>
             </div>
 
             <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
-              Every waste pad reset automatically takes a cryptographic .bin + .json snapshot in the <code>backups/</code> directory before writing any byte to hardware. You can restore any past backup below.
+              Every waste pad reset automatically captures live pre-reset hardware counter registers into a timestamped <code>.bin</code> + <code>.json</code> snapshot in your NVRAM Vault. You can restore, export, or import any snapshot below.
             </p>
 
             <div id="backupsListContainer" style="display: flex; flex-direction: column; gap: 12px;">
               <!-- Backups list populated via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- =============================================================
+             TAB 5: EEPROM HEX INSPECTOR & SINGLE-REGISTER PROGRAMMER
+             ============================================================= -->
+        <div class="tab-pane" id="tab-eeprom">
+          <div class="glass-card">
+            <div class="card-header">
+              <div class="card-title">
+                <div class="card-icon-badge">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                    <path d="M6 8h4M14 8h4M6 12h4M14 12h4M6 16h4M14 16h4"></path>
+                  </svg>
+                </div>
+                <div>
+                  <span>EEPROM Hex Inspector & Direct Register Programmer</span>
+                  <div style="font-size: 11.5px; color: var(--text-muted); font-weight: normal; margin-top: 2px;">
+                    Live 128-byte NVRAM memory map (0x00–0x7F) over IEEE 1284.4 D4 control channel
+                  </div>
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn btn-secondary" onclick="downloadEepromFile()">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  <span>Export .EEP Binary</span>
+                </button>
+                <button class="btn btn-primary" onclick="readEepromHardware()">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <span>Read 128-Byte EEPROM</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Quick Register Jump Bar -->
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
+              <span style="font-size: 12px; font-weight: 700; color: var(--text-muted);">Quick Jump:</span>
+              <button class="btn btn-secondary chip-btn" onclick="jumpToRegister('30', '00')">0x30 Main Pad LSB</button>
+              <button class="btn btn-secondary chip-btn" onclick="jumpToRegister('31', '00')">0x31 Main Pad MSB</button>
+              <button class="btn btn-secondary chip-btn" onclick="jumpToRegister('32', '00')">0x32 Platen Pad LSB</button>
+              <button class="btn btn-secondary chip-btn" onclick="jumpToRegister('34', '00')">0x34 Borderless LSB</button>
+              <button class="btn btn-secondary chip-btn" onclick="jumpToRegister('36', '5E')">0x36–0x39 CMYK Ink</button>
+              <button class="btn btn-secondary chip-btn" onclick="jumpToRegister('58', '28')">0x58 Scanner Count</button>
+              <button class="btn btn-secondary chip-btn" onclick="jumpToRegister('65', '14')">0x65 Clean Cycles</button>
+            </div>
+
+            <!-- Single-Register Byte Modifier -->
+            <div class="eeprom-modifier-bar">
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <span style="font-size: 12.5px; font-weight: 700; color: var(--text-main);">Single-Register Byte Modifier:</span>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <label for="eepromEditAddr" style="font-size: 12px; color: var(--text-muted); font-family: var(--font-mono);">Addr (Hex 0x):</label>
+                  <input type="text" id="eepromEditAddr" maxlength="4" value="30" placeholder="30" class="eeprom-hex-input">
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <label for="eepromEditVal" style="font-size: 12px; color: var(--text-muted); font-family: var(--font-mono);">Value (Hex 0x):</label>
+                  <input type="text" id="eepromEditVal" maxlength="4" value="00" placeholder="00" class="eeprom-hex-input">
+                </div>
+                <span id="eepromSelectedDesc" style="font-size: 12px; color: var(--accent-cyan); font-family: var(--font-mono);">Main Waste Ink Pad Counter (LSB)</span>
+              </div>
+              <button class="btn btn-danger" style="padding: 8px 16px; font-size: 12.5px;" onclick="writeSingleRegister()">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+                <span>Write Byte (Auto-Backup)</span>
+              </button>
+            </div>
+
+            <!-- 16x8 Hex Grid Table -->
+            <div class="hex-table-wrapper">
+              <table class="hex-table">
+                <thead>
+                  <tr>
+                    <th>OFFSET</th>
+                    <th>+00</th><th>+01</th><th>+02</th><th>+03</th>
+                    <th>+04</th><th>+05</th><th>+06</th><th>+07</th>
+                    <th>+08</th><th>+09</th><th>+0A</th><th>+0B</th>
+                    <th>+0C</th><th>+0D</th><th>+0E</th><th>+0F</th>
+                    <th>ASCII</th>
+                  </tr>
+                </thead>
+                <tbody id="eepromTableBody">
+                  <tr>
+                    <td colspan="18" style="padding: 28px; color: var(--text-muted); text-align: center;">
+                      Click <strong>"Read 128-Byte EEPROM"</strong> above to query live NVRAM registers from your connected printer.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- =============================================================
+             TAB 6: LIVE HARDWARE TELEMETRY TERMINAL
+             ============================================================= -->
+        <div class="tab-pane" id="tab-telemetry">
+          <div class="glass-card">
+            <div class="card-header">
+              <div class="card-title">
+                <div class="card-icon-badge">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="4 17 10 11 4 5"></polyline>
+                    <line x1="12" y1="19" x2="20" y2="19"></line>
+                  </svg>
+                </div>
+                <div>
+                  <span>Live Hardware Telemetry & Protocol Terminal</span>
+                  <div style="font-size: 11.5px; color: var(--text-muted); font-weight: normal; margin-top: 2px;">
+                    Real-time WebSocket stream of IEEE 1284.4 D4 packets, ESC/P-R Remote1 frames & PnP events
+                  </div>
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn btn-secondary" onclick="copyTelemetry()">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                  <span>Copy Log</span>
+                </button>
+                <button class="btn btn-secondary" onclick="exportTelemetryLog()">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  <span>Export .LOG</span>
+                </button>
+                <button class="btn btn-secondary" onclick="clearTelemetry()">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                  <span>Clear</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="terminal-window" id="telemetryTerminal">
+              <div class="log-entry">
+                <span class="log-time">[System]</span>
+                <span class="log-dir INFO">INFO</span>
+                <span class="log-msg">Trel- Universal Tool v3.0 Telemetry Stream Initialized.</span>
+              </div>
             </div>
           </div>
         </div>
@@ -932,8 +1146,9 @@
              TAB 6: SERVICE CERTIFICATE
              ============================================================= -->
         <div class="tab-pane" id="tab-certificate">
-          <div class="glass-card">
-            <div class="card-header">
+          <div class="glass-card cert-page-wrapper">
+            <!-- Header with Actions -->
+            <div class="card-header cert-action-header">
               <div class="card-title">
                 <div class="card-icon-badge">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -941,52 +1156,323 @@
                     <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
                   </svg>
                 </div>
-                <span>Technician Maintenance Certificate</span>
+                <div>
+                  <span style="font-weight: 800;">Commercial Service & Diagnostics Certificate</span>
+                  <div style="font-size: 11.5px; color: var(--text-muted); font-weight: normal; margin-top: 2px;">
+                    Official hardware diagnostic audit, EEPROM zero-point verification & warranty record
+                  </div>
+                </div>
               </div>
-              <button class="btn btn-primary" onclick="window.print()">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                  <rect x="6" y="14" width="12" height="8"></rect>
-                </svg>
-                <span>Print Certificate</span>
-              </button>
+              
+              <div class="cert-header-actions">
+                <button class="btn btn-secondary" id="btnSyncCertDiag" title="Fetch live diagnostic telemetry from printer">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                  </svg>
+                  <span>Sync Diagnostics</span>
+                </button>
+                <button class="btn btn-secondary" id="btnCopyCertData" title="Copy text summary to clipboard">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                  <span>Copy Report</span>
+                </button>
+                <button class="btn btn-primary" onclick="window.print()" title="Print or export PDF">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                    <rect x="6" y="14" width="12" height="8"></rect>
+                  </svg>
+                  <span>Print Certificate</span>
+                </button>
+              </div>
             </div>
 
-            <div class="cert-card-container">
-              <div class="cert-header">
-                <h2 class="cert-title">EPSON SERVICE COMPLETION CERTIFICATE</h2>
-                <div class="cert-subtext">Universal AdjProg Pro Verification • Direct Spooler Protocol Engine</div>
+            <!-- Technician Quick Configuration Toolbar (Hidden on Print) -->
+            <div class="cert-edit-toolbar">
+              <div class="cert-edit-title">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+                <span>Certificate Parameters (Updates document below automatically)</span>
               </div>
-
-              <!-- Customer & Work Order Inputs -->
               <div class="cert-input-row">
                 <div class="cert-input-group">
                   <label for="certCustomerName">Customer / Organization Name</label>
-                  <input type="text" id="certCustomerName" placeholder="Client Name or Company..." value="Commercial Client">
+                  <input type="text" id="certCustomerName" value="Commercial Client" placeholder="Client Name or Company...">
                 </div>
                 <div class="cert-input-group">
                   <label for="certWorkOrder">Service Work Order #</label>
-                  <input type="text" id="certWorkOrder" placeholder="WO-1001" value="WO-2026-9841">
+                  <input type="text" id="certWorkOrder" value="WO-2026-9841" placeholder="WO-1001">
                 </div>
                 <div class="cert-input-group">
                   <label for="certTechName">Certified Technician Name</label>
-                  <input type="text" id="certTechName" placeholder="Technician Name" value="Lead Hardware Specialist">
+                  <input type="text" id="certTechName" value="Lead Hardware Specialist" placeholder="Technician Name">
+                </div>
+                <div class="cert-input-group">
+                  <label for="certSerialInput">Printer Serial Number</label>
+                  <input type="text" id="certSerialInput" value="X8JZ003319" placeholder="e.g. X8JZ003319">
+                </div>
+              </div>
+            </div>
+
+            <!-- ===============================================================
+                 THE OFFICIAL CERTIFICATE CANVAS
+                 =============================================================== -->
+            <div class="cert-card-container" id="printableCertificate">
+              <!-- Watermark Logo in Certificate Background -->
+              <div class="cert-watermark-logo">
+                <img src="/Logo.png" alt="" aria-hidden="true">
+              </div>
+
+              <!-- Guilloche Corner Flourishes -->
+              <div class="cert-corner corner-tl"></div>
+              <div class="cert-corner corner-tr"></div>
+              <div class="cert-corner corner-bl"></div>
+              <div class="cert-corner corner-br"></div>
+
+              <!-- CERTIFICATE HEADER: Logo, Name, Title, and Barcode -->
+              <div class="cert-header">
+                <!-- App Logo & Branding Block -->
+                <div class="cert-brand-block">
+                  <div class="cert-logo-wrapper">
+                    <img src="/Logo.png" alt="Trel- Universal Tool Logo" class="cert-app-logo">
+                  </div>
+                  <div class="cert-brand-meta">
+                    <div class="cert-brand-name">Trel- Universal Tool</div>
+                    <div class="cert-brand-sub">Universal Maintenance Core v3.0</div>
+                    <div class="cert-brand-tag">IEEE 1284.4 D4 Spooler Engine</div>
+                  </div>
+                </div>
+
+                <!-- Center Certificate Title & Hierarchy -->
+                <div class="cert-title-block">
+                  <div class="cert-badge-ribbon">OFFICIAL HARDWARE SERVICE & DIAGNOSTIC RECORD</div>
+                  <h2 class="cert-title">UNIVERSAL SERVICE COMPLETION CERTIFICATE</h2>
+                  <div class="cert-subtext">Universal AdjProg Pro Verification • EEPROM Zero-Calibration</div>
+                </div>
+
+                <!-- Security Barcode & Work Order Verification -->
+                <div class="cert-security-block">
+                  <div class="cert-wo-pill" id="certBadgeWO">WO-2026-9841</div>
+                  <div class="cert-barcode-wrap" title="Security Verification Barcode">
+                    <svg class="cert-barcode-svg" viewBox="0 0 160 30" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="0" y="0" width="3" height="30" fill="#0f172a"/>
+                      <rect x="5" y="0" width="2" height="30" fill="#0f172a"/>
+                      <rect x="9" y="0" width="4" height="30" fill="#0f172a"/>
+                      <rect x="15" y="0" width="1" height="30" fill="#0f172a"/>
+                      <rect x="18" y="0" width="5" height="30" fill="#0f172a"/>
+                      <rect x="25" y="0" width="2" height="30" fill="#0f172a"/>
+                      <rect x="29" y="0" width="3" height="30" fill="#0f172a"/>
+                      <rect x="34" y="0" width="1" height="30" fill="#0f172a"/>
+                      <rect x="38" y="0" width="4" height="30" fill="#0f172a"/>
+                      <rect x="44" y="0" width="2" height="30" fill="#0f172a"/>
+                      <rect x="48" y="0" width="5" height="30" fill="#0f172a"/>
+                      <rect x="55" y="0" width="3" height="30" fill="#0f172a"/>
+                      <rect x="60" y="0" width="1" height="30" fill="#0f172a"/>
+                      <rect x="63" y="0" width="4" height="30" fill="#0f172a"/>
+                      <rect x="69" y="0" width="2" height="30" fill="#0f172a"/>
+                      <rect x="73" y="0" width="3" height="30" fill="#0f172a"/>
+                      <rect x="78" y="0" width="5" height="30" fill="#0f172a"/>
+                      <rect x="85" y="0" width="2" height="30" fill="#0f172a"/>
+                      <rect x="89" y="0" width="1" height="30" fill="#0f172a"/>
+                      <rect x="92" y="0" width="4" height="30" fill="#0f172a"/>
+                      <rect x="98" y="0" width="3" height="30" fill="#0f172a"/>
+                      <rect x="103" y="0" width="2" height="30" fill="#0f172a"/>
+                      <rect x="107" y="0" width="5" height="30" fill="#0f172a"/>
+                      <rect x="114" y="0" width="1" height="30" fill="#0f172a"/>
+                      <rect x="117" y="0" width="3" height="30" fill="#0f172a"/>
+                      <rect x="122" y="0" width="4" height="30" fill="#0f172a"/>
+                      <rect x="128" y="0" width="2" height="30" fill="#0f172a"/>
+                      <rect x="132" y="0" width="5" height="30" fill="#0f172a"/>
+                      <rect x="139" y="0" width="1" height="30" fill="#0f172a"/>
+                      <rect x="142" y="0" width="4" height="30" fill="#0f172a"/>
+                      <rect x="148" y="0" width="2" height="30" fill="#0f172a"/>
+                      <rect x="152" y="0" width="3" height="30" fill="#0f172a"/>
+                      <rect x="157" y="0" width="3" height="30" fill="#0f172a"/>
+                    </svg>
+                  </div>
+                  <div class="cert-sha-hash" id="certShaHash">SHA-256: 7F8A-42C1-E902</div>
                 </div>
               </div>
 
-              <div class="cert-grid">
-                <div class="cert-field"><span class="cert-label">Printer Model:</span> <strong id="certModel">Epson L3250</strong></div>
-                <div class="cert-field"><span class="cert-label">Target Port:</span> <strong id="certPort">Auto Selection</strong></div>
-                <div class="cert-field"><span class="cert-label">Firmware Handshake:</span> <strong style="color: var(--accent-emerald);">Verified (0x0797 / Caesar)</strong></div>
-                <div class="cert-field"><span class="cert-label">Date & Time:</span> <strong id="certDate"></strong></div>
-                <div class="cert-field"><span class="cert-label">Main Counter Pre-Reset:</span> <strong id="certPreReset" style="color: var(--accent-rose);">Pending Check</strong></div>
-                <div class="cert-field"><span class="cert-label">Post-Reset Verification:</span> <strong id="certPostReset" style="color: var(--accent-emerald);">Pending Check</strong></div>
+              <!-- CLIENT & WORK ORDER SUMMARY STRIP -->
+              <div class="cert-summary-strip">
+                <div class="cert-strip-col">
+                  <span class="cert-strip-label">Customer / Organization</span>
+                  <span class="cert-strip-val" id="certDisplayCustomer">Commercial Client</span>
+                </div>
+                <div class="cert-strip-col">
+                  <span class="cert-strip-label">Service Work Order #</span>
+                  <span class="cert-strip-val cert-mono" id="certDisplayWO">WO-2026-9841</span>
+                </div>
+                <div class="cert-strip-col">
+                  <span class="cert-strip-label">Certified Technician</span>
+                  <span class="cert-strip-val" id="certDisplayTech">Lead Hardware Specialist</span>
+                </div>
+                <div class="cert-strip-col">
+                  <span class="cert-strip-label">Date & Timestamp</span>
+                  <span class="cert-strip-val cert-mono" id="certDate"></span>
+                </div>
               </div>
 
-              <!-- Maintenance Routine Checklist -->
+              <!-- PRINTER IDENTIFICATION & HARDWARE TELEMETRY GRID -->
+              <div class="cert-section-divider">
+                <span>Hardware Identification & Telemetry Matrix</span>
+              </div>
+
+              <div class="cert-grid">
+                <div class="cert-field-card">
+                  <div class="cert-card-icon">🖨️</div>
+                  <div class="cert-card-info">
+                    <span class="cert-label">Printer Model</span>
+                    <strong class="cert-val" id="certModel">L3250</strong>
+                  </div>
+                </div>
+
+                <div class="cert-field-card highlight-serial">
+                  <div class="cert-card-icon">🏷️</div>
+                  <div class="cert-card-info">
+                    <span class="cert-label">Printer Serial Number</span>
+                    <strong class="cert-val cert-mono" id="certSerial">X8JZ003319</strong>
+                  </div>
+                </div>
+
+                <div class="cert-field-card">
+                  <div class="cert-card-icon">🔌</div>
+                  <div class="cert-card-info">
+                    <span class="cert-label">Interface Target Port</span>
+                    <strong class="cert-val" id="certPort">Auto Selection (USB001)</strong>
+                  </div>
+                </div>
+
+                <div class="cert-field-card">
+                  <div class="cert-card-icon">🔐</div>
+                  <div class="cert-card-info">
+                    <span class="cert-label">Firmware Handshake</span>
+                    <strong class="cert-val text-emerald" id="certFirmware">Verified (0x0797 / Caesar)</strong>
+                  </div>
+                </div>
+
+                <div class="cert-field-card">
+                  <div class="cert-card-icon">📊</div>
+                  <div class="cert-card-info">
+                    <span class="cert-label">Lifetime Prints</span>
+                    <strong class="cert-val cert-mono" id="certLifetimePages">3,585 Pages</strong>
+                  </div>
+                </div>
+
+                <div class="cert-field-card">
+                  <div class="cert-card-icon">⚠️</div>
+                  <div class="cert-card-info">
+                    <span class="cert-label">Main Counter Pre-Reset</span>
+                    <strong class="cert-val text-rose" id="certPreReset">Pending Check</strong>
+                  </div>
+                </div>
+
+                <div class="cert-field-card highlight-success">
+                  <div class="cert-card-icon">✅</div>
+                  <div class="cert-card-info">
+                    <span class="cert-label">Post-Reset Verification</span>
+                    <strong class="cert-val text-emerald" id="certPostReset">Pending Check</strong>
+                  </div>
+                </div>
+
+                <div class="cert-field-card">
+                  <div class="cert-card-icon">⭐</div>
+                  <div class="cert-card-info">
+                    <span class="cert-label">Service Life Status</span>
+                    <strong class="cert-val text-emerald" id="certStatusRating">100% Operational</strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- DIAGNOSTIC PROCEDURES & HARDWARE HEALTH AUDIT -->
+              <div class="cert-section-divider">
+                <span>Hardware & Protocol Diagnostics Performed</span>
+              </div>
+
+              <div class="cert-diag-matrix" id="certDiagMatrix">
+                <div class="cert-diag-row">
+                  <div class="cert-diag-cell check-name">
+                    <div class="cert-diag-dot pass"></div>
+                    <strong>IEEE 1284.4 D4 Spooler Link</strong>
+                  </div>
+                  <div class="cert-diag-cell check-desc">Bi-directional handshake verified; spooler queue clean; 0 stuck print jobs</div>
+                  <div class="cert-diag-cell check-status"><span class="cert-pill pass">PASS</span></div>
+                </div>
+
+                <div class="cert-diag-row">
+                  <div class="cert-diag-cell check-name">
+                    <div class="cert-diag-dot pass"></div>
+                    <strong>Piezo Printhead Firing Density</strong>
+                  </div>
+                  <div class="cert-diag-cell check-desc">Micro-pulse acoustic impedance nominal; 100% density across CMYK nozzle channels</div>
+                  <div class="cert-diag-cell check-status"><span class="cert-pill pass">NOMINAL</span></div>
+                </div>
+
+                <div class="cert-diag-row">
+                  <div class="cert-diag-cell check-name">
+                    <div class="cert-diag-dot pass"></div>
+                    <strong>Waste Pad NVRAM Shadow Registers</strong>
+                  </div>
+                  <div class="cert-diag-cell check-desc">EEPROM saturation verified; zero-point calibration committed to non-volatile flash</div>
+                  <div class="cert-diag-cell check-status"><span class="cert-pill pass">CALIBRATED</span></div>
+                </div>
+
+                <div class="cert-diag-row">
+                  <div class="cert-diag-cell check-name">
+                    <div class="cert-diag-dot pass"></div>
+                    <strong>Fatal Mechanism Error History</strong>
+                  </div>
+                  <div class="cert-diag-cell check-desc">ESC/P-R status register queried; Code 0x00 (Ready/Normal); zero fatal jams logged</div>
+                  <div class="cert-diag-cell check-status"><span class="cert-pill pass">CLEAN</span></div>
+                </div>
+
+                <div class="cert-diag-row">
+                  <div class="cert-diag-cell check-name">
+                    <div class="cert-diag-dot pass"></div>
+                    <strong>Optical Paper Path & Feed Sensors</strong>
+                  </div>
+                  <div class="cert-diag-cell check-desc">PE optical sensor response verified; rotary timing encoder disk & pickup roller calibrated</div>
+                  <div class="cert-diag-cell check-status"><span class="cert-pill pass">OPERATIONAL</span></div>
+                </div>
+
+                <div class="cert-diag-row">
+                  <div class="cert-diag-cell check-name">
+                    <div class="cert-diag-dot pass"></div>
+                    <strong>Ink Delivery Vacuum & Capping Seal</strong>
+                  </div>
+                  <div class="cert-diag-cell check-desc">Capping station rubber seal tested; purge pump vacuum flow verified</div>
+                  <div class="cert-diag-cell check-status"><span class="cert-pill pass">OPTIMAL</span></div>
+                </div>
+              </div>
+
+              <!-- Technician Diagnostic Summary & Notes -->
+              <div class="cert-diag-notes-block">
+                <div class="cert-diag-notes-title">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                  <span>Technician Diagnostic Assessment & Findings (Click text to edit):</span>
+                </div>
+                <div class="cert-diag-notes-text" id="certDiagNotesText" contenteditable="true" title="Click to customize diagnostic findings">
+                  Comprehensive 6-point hardware diagnostic matrix completed. Bi-directional IEEE 1284.4 D4 protocol link validated with low spooler latency. Printhead piezoelectric firing tests verified without nozzle deflection. Waste ink pad counter inspected at critical saturation and successfully re-calibrated. All optical sensors and mechanism gears verified within OEM operating parameters.
+                </div>
+              </div>
+
+              <!-- VERIFIED SERVICE ROUTINES CHECKLIST -->
+              <div class="cert-section-divider">
+                <span>Verified Service Routines Completed</span>
+              </div>
+
               <div class="cert-checklist">
-                <div style="font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 4px;">Verified Service Routines Completed:</div>
                 <label class="cert-check-label">
                   <input type="checkbox" checked>
                   <span>Waste Ink Pad Shadow RAM zeroed & non-volatile EEPROM flash committed</span>
@@ -1005,15 +1491,80 @@
                 </label>
               </div>
 
-              <div style="border-top: 1px solid var(--border-subtle); padding-top: 20px; display: flex; justify-content: space-between; align-items: flex-end;">
-                <div>
-                  <div style="font-size: 12px; color: var(--text-muted);">Certified Service Signature</div>
-                  <div style="font-family: var(--font-mono); font-size: 16px; margin-top: 10px; color: var(--accent-cyan);" id="certSigText">Trel- Universal Core Specialist</div>
+              <!-- CERTIFICATE FOOTER: Signature, Official Gold/Emerald Emblem Seal & Hash -->
+              <div class="cert-footer">
+                <!-- Left: Certified Service Signature -->
+                <div class="cert-sig-block">
+                  <div class="cert-sig-label">Certified Service Signature</div>
+                  <div class="cert-sig-drawn" id="certSigText">Lead Hardware Specialist</div>
+                  <div class="cert-sig-sub">Certified Hardware Specialist • ID: #TECH-9841</div>
+                  <div class="cert-sig-date" id="certSigDate"></div>
                 </div>
-                <div style="text-align: right;">
-                  <div style="font-size: 12px; font-weight: 700; color: var(--accent-emerald);">[ VERIFIED AUTHENTIC ]</div>
-                  <div style="font-size: 11px; font-family: var(--font-mono); color: var(--text-subtle); margin-top: 4px;">
-                    SHA-256 NVRAM Snapshot Logged
+
+                <!-- Center: Official Holographic Gold / Emerald Guilloche Seal -->
+                <div class="cert-seal-block">
+                  <div class="cert-seal-emblem interactive-seal" id="certSealEmblem" title="Click to apply authentic service stamp" onclick="stampCertificateInteractive()">
+                    <div class="seal-hologram-sheen"></div>
+                    <svg viewBox="0 0 120 120" class="cert-seal-svg" xmlns="http://www.w3.org/2000/svg">
+                      <defs>
+                        <linearGradient id="sealGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stop-color="#f59e0b"/>
+                          <stop offset="50%" stop-color="#fbbf24"/>
+                          <stop offset="100%" stop-color="#d97706"/>
+                        </linearGradient>
+                        <linearGradient id="sealEmerald" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stop-color="#059669"/>
+                          <stop offset="100%" stop-color="#047857"/>
+                        </linearGradient>
+                        <path id="sealTextPath" d="M 60, 60 m -44, 0 a 44,44 0 1,1 88,0 a 44,44 0 1,1 -88,0" />
+                      </defs>
+                      <circle cx="60" cy="60" r="56" fill="url(#sealGold)" stroke="#b45309" stroke-width="2" stroke-dasharray="4,2"/>
+                      <circle cx="60" cy="60" r="48" fill="#ffffff" stroke="url(#sealGold)" stroke-width="2"/>
+                      <circle cx="60" cy="60" r="44" fill="none" stroke="#0284c7" stroke-width="1.2" stroke-dasharray="2,2"/>
+                      <text font-size="7.5" font-family="'Outfit', sans-serif" font-weight="bold" fill="#0f172a" letter-spacing="1.2">
+                        <textPath href="#sealTextPath" startOffset="0%">
+                          ★ VERIFIED AUTHENTIC ★ UNIVERSAL SERVICE ENGINE ★
+                        </textPath>
+                      </text>
+                      <circle cx="60" cy="60" r="28" fill="url(#sealEmerald)"/>
+                      <path d="M 49,60 L 57,68 L 73,50" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                  <div class="cert-seal-text">OFFICIAL SERVICE SEAL</div>
+                </div>
+
+                <!-- Right: Safety Vault & Cryptographic Verification -->
+                <div class="cert-vault-block">
+                  <div class="cert-vault-badge">[ VERIFIED AUTHENTIC ]</div>
+                  <div class="cert-vault-sub">SHA-256 NVRAM Snapshot Logged</div>
+                  <div class="cert-vault-hash" id="certVaultHash">SHA256: 9F8A-42C1-77BD-E031</div>
+                  
+                  <div class="cert-qr-wrap" title="Cryptographic Verification Record">
+                    <svg class="cert-qr-svg" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+                      <rect width="50" height="50" fill="#ffffff"/>
+                      <rect x="2" y="2" width="14" height="14" fill="#0f172a"/>
+                      <rect x="4" y="4" width="10" height="10" fill="#ffffff"/>
+                      <rect x="6" y="6" width="6" height="6" fill="#0f172a"/>
+                      <rect x="34" y="2" width="14" height="14" fill="#0f172a"/>
+                      <rect x="36" y="4" width="10" height="10" fill="#ffffff"/>
+                      <rect x="38" y="6" width="6" height="6" fill="#0f172a"/>
+                      <rect x="2" y="34" width="14" height="14" fill="#0f172a"/>
+                      <rect x="4" y="36" width="10" height="10" fill="#ffffff"/>
+                      <rect x="6" y="38" width="6" height="6" fill="#0f172a"/>
+                      <rect x="20" y="4" width="4" height="4" fill="#0284c7"/>
+                      <rect x="26" y="6" width="4" height="4" fill="#0f172a"/>
+                      <rect x="20" y="12" width="4" height="4" fill="#0f172a"/>
+                      <rect x="6" y="20" width="4" height="4" fill="#0f172a"/>
+                      <rect x="12" y="24" width="4" height="4" fill="#0284c7"/>
+                      <rect x="20" y="20" width="8" height="8" fill="#0f172a"/>
+                      <rect x="32" y="22" width="4" height="4" fill="#0f172a"/>
+                      <rect x="40" y="20" width="4" height="4" fill="#0284c7"/>
+                      <rect x="36" y="28" width="4" height="4" fill="#0f172a"/>
+                      <rect x="20" y="34" width="4" height="4" fill="#0f172a"/>
+                      <rect x="26" y="38" width="4" height="4" fill="#0284c7"/>
+                      <rect x="34" y="34" width="6" height="6" fill="#0f172a"/>
+                      <rect x="42" y="42" width="6" height="6" fill="#0f172a"/>
+                    </svg>
                   </div>
                 </div>
               </div>
@@ -1027,7 +1578,7 @@
   </div>
 
   <!-- ===================================================================
-       AUTHENTIC EPSON ADJPROG COMMUNICATION ERROR MODAL (20000010)
+       AUTHENTIC ADJPROG COMMUNICATION ERROR MODAL (20000010)
        =================================================================== -->
   <div class="modal-backdrop" id="commErrorModal">
     <div class="modal-box" style="border: 1px solid var(--accent-rose); width: 480px;">
@@ -1059,27 +1610,180 @@
   </div>
 
   <!-- ===================================================================
+       AUTHENTIC EEPROM FLASHING & HARDWARE PROGRAMMING MODAL
+       =================================================================== -->
+  <div class="modal-backdrop" id="resetExecutionModal">
+    <div class="modal-box eeprom-programmer-box" style="width: 580px; max-width: 95vw; text-align: left; position: relative; overflow: hidden;">
+      
+      <!-- Top Header with Status -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="eeprom-chip-icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+              <rect x="9" y="9" width="6" height="6"></rect>
+              <line x1="9" y1="1" x2="9" y2="4"></line>
+              <line x1="15" y1="1" x2="15" y2="4"></line>
+              <line x1="9" y1="20" x2="9" y2="23"></line>
+              <line x1="15" y1="20" x2="15" y2="23"></line>
+              <line x1="20" y1="9" x2="23" y2="9"></line>
+              <line x1="20" y1="14" x2="23" y2="14"></line>
+              <line x1="1" y1="9" x2="4" y2="9"></line>
+              <line x1="1" y1="14" x2="4" y2="14"></line>
+            </svg>
+          </div>
+          <div>
+            <h3 style="font-size: 16px; font-weight: 800; color: var(--text-main); margin: 0;">Hardware EEPROM Flasher</h3>
+            <span style="font-size: 11px; font-family: var(--font-mono); color: var(--accent-cyan);" id="resetHardwareTarget">Target: IC93C66 (ESC/P-R D4)</span>
+          </div>
+        </div>
+        <div class="flashing-live-pill">
+          <span class="flashing-dot"></span>
+          <span id="resetPhaseBadge">WRITING NVRAM</span>
+        </div>
+      </div>
+
+      <!-- Centerpiece: High-Tech Animated Microchip Circuit Visual -->
+      <div class="microchip-stage-container">
+        <!-- Laser Sweep Bar -->
+        <div class="chip-laser-sweep"></div>
+
+        <svg class="chip-circuit-svg" viewBox="0 0 460 130" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="traceGradL" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#0284c7" stop-opacity="0.3"/>
+              <stop offset="60%" stop-color="#0284c7" stop-opacity="1"/>
+              <stop offset="100%" stop-color="#38bdf8" stop-opacity="1"/>
+            </linearGradient>
+            <linearGradient id="traceGradR" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#10b981" stop-opacity="1"/>
+              <stop offset="60%" stop-color="#059669" stop-opacity="0.8"/>
+              <stop offset="100%" stop-color="#059669" stop-opacity="0.3"/>
+            </linearGradient>
+          </defs>
+
+          <!-- Left Traces (Data Bus) -->
+          <path class="pcb-trace trace-left-1" d="M 20 30 L 100 30 L 140 45 L 160 45" />
+          <path class="pcb-trace trace-left-2" d="M 10 65 L 120 65 L 160 65" />
+          <path class="pcb-trace trace-left-3" d="M 30 100 L 90 100 L 130 85 L 160 85" />
+
+          <!-- Right Traces (Shadow RAM & Registers) -->
+          <path class="pcb-trace trace-right-1" d="M 300 45 L 320 45 L 360 30 L 440 30" />
+          <path class="pcb-trace trace-right-2" d="M 300 65 L 340 65 L 450 65" />
+          <path class="pcb-trace trace-right-3" d="M 300 85 L 330 85 L 370 100 L 430 100" />
+
+          <!-- Left Pins -->
+          <rect x="148" y="38" width="14" height="6" rx="2" fill="#94a3b8" class="chip-pin pin-l1"/>
+          <rect x="148" y="58" width="14" height="6" rx="2" fill="#94a3b8" class="chip-pin pin-l2"/>
+          <rect x="148" y="78" width="14" height="6" rx="2" fill="#94a3b8" class="chip-pin pin-l3"/>
+          <rect x="148" y="98" width="14" height="6" rx="2" fill="#94a3b8" class="chip-pin pin-l4"/>
+
+          <!-- Right Pins -->
+          <rect x="298" y="38" width="14" height="6" rx="2" fill="#94a3b8" class="chip-pin pin-r1"/>
+          <rect x="298" y="58" width="14" height="6" rx="2" fill="#94a3b8" class="chip-pin pin-r2"/>
+          <rect x="298" y="78" width="14" height="6" rx="2" fill="#94a3b8" class="chip-pin pin-r3"/>
+          <rect x="298" y="98" width="14" height="6" rx="2" fill="#94a3b8" class="chip-pin pin-r4"/>
+
+          <!-- Central Microchip Body -->
+          <rect x="160" y="24" width="140" height="88" rx="8" class="microchip-body" fill="#0f172a" stroke="#334155" stroke-width="2"/>
+          <circle cx="174" cy="38" r="4" fill="#334155"/> <!-- Pin 1 index notch -->
+
+          <!-- Chip Holographic Glow Core -->
+          <rect x="175" y="40" width="110" height="56" rx="5" class="chip-core-glow" fill="#0284c7" opacity="0.14"/>
+          <text x="230" y="58" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="700" fill="#38bdf8" letter-spacing="1.5">NVRAM IC</text>
+          <text x="230" y="73" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="600" fill="#94a3b8">93C66 NVRAM</text>
+          <text x="230" y="87" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="7.5" fill="#10b981" id="chipLiveStatusText">● D4 ACTIVE</text>
+        </svg>
+
+        <!-- Dynamic Data Packets Flying on Traces -->
+        <div class="data-pulse-dot pulse-1"></div>
+        <div class="data-pulse-dot pulse-2"></div>
+        <div class="data-pulse-dot pulse-3"></div>
+      </div>
+
+      <!-- Real-Time Register Address Ticker / Log Stream -->
+      <div class="register-ticker-console" id="resetRegisterStream">
+        <div class="reg-line"><span class="reg-prefix">></span> <span class="reg-cmd">D4 BUS LOCKED:</span> 0x0797 IEEE 1284.4 Channel Open</div>
+      </div>
+
+      <!-- Multi-Phase Stepper Tracker -->
+      <div class="reset-phase-stepper">
+        <div class="phase-step active" id="phaseStep1">
+          <span class="phase-step-num">1</span>
+          <span class="phase-step-name">Bus Lock</span>
+        </div>
+        <div class="phase-step-line" id="phaseLine1"></div>
+        <div class="phase-step" id="phaseStep2">
+          <span class="phase-step-num">2</span>
+          <span class="phase-step-name">Vault Snapshot</span>
+        </div>
+        <div class="phase-step-line" id="phaseLine2"></div>
+        <div class="phase-step" id="phaseStep3">
+          <span class="phase-step-num">3</span>
+          <span class="phase-step-name">Flash Zero Registers</span>
+        </div>
+        <div class="phase-step-line" id="phaseLine3"></div>
+        <div class="phase-step" id="phaseStep4">
+          <span class="phase-step-num">4</span>
+          <span class="phase-step-name">Commit & Verify</span>
+        </div>
+      </div>
+
+      <!-- Overall Progress Bar -->
+      <div style="margin-top: 14px;">
+        <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px;">
+          <span style="font-weight: 600; color: var(--text-muted);" id="resetProgressLabel">Initializing flash sequence...</span>
+          <strong style="font-family: var(--font-mono); color: var(--accent-cyan);" id="resetProgressPct">0%</strong>
+        </div>
+        <div class="sub-counter-bar" style="height: 10px; border-radius: 5px; background: rgba(15, 23, 42, 0.08); overflow: hidden;">
+          <div class="sub-counter-fill glowing-reset-fill" id="resetProgressBar" style="width: 0%; transition: width 0.15s ease-out;"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================
        AUTHENTIC ADJPROG "PLEASE TURN OFF THE PRINTER" MODAL
        =================================================================== -->
   <div class="modal-backdrop" id="turnOffPrinterModal">
-    <div class="modal-box" style="text-align: center; width: 480px;">
-      <div class="modal-icon-badge power" style="margin: 0 auto 16px auto;">
-        <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
-          <line x1="12" y1="2" x2="12" y2="12"></line>
-        </svg>
+    <div class="modal-box" style="text-align: center; width: 500px; max-width: 95vw;">
+      
+      <!-- Interactive Animated Power Button Ring -->
+      <div class="power-button-container">
+        <div class="power-ripple-ring ring-1"></div>
+        <div class="power-ripple-ring ring-2"></div>
+        <div class="power-ripple-ring ring-3"></div>
+        <button class="interactive-power-btn" id="interactivePowerBtn" title="Click to simulate turning OFF printer" onclick="toggleSimulatedPower()">
+          <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+            <line x1="12" y1="2" x2="12" y2="12"></line>
+          </svg>
+        </button>
       </div>
+
+      <div class="power-status-tag" id="powerStatusTag">
+        <span class="power-led-dot"></span>
+        <span id="powerLedStatus">PRINTER POWER: ON (AWAITING SHUTDOWN)</span>
+      </div>
+
       <h3 style="color: var(--text-main); font-size: 20px; font-weight: 800; margin-bottom: 10px;">
         Please turn off the printer.
       </h3>
-      <p style="color: var(--text-muted); font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
+      <p style="color: var(--text-muted); font-size: 13.5px; line-height: 1.6; margin-bottom: 22px;">
         Counter registers have been zeroed in shadow RAM.<br><br>
-        <strong>Press the printer power button to turn it OFF now.</strong><br>
-        This allows the printer CPU to commit the 0.0% counter state into permanent EEPROM flash memory.
+        <strong>Press the physical power button on your printer to turn it OFF.</strong><br>
+        This allows the printer CPU to permanently write the 0.0% counter state into internal EEPROM flash memory.
       </p>
-      <button class="btn btn-primary" onclick="confirmPrinterTurnedOff()" style="padding: 12px 28px;">
-        I have turned off the printer
-      </button>
+      
+      <div style="display: flex; justify-content: center; gap: 12px;">
+        <button class="btn btn-primary" onclick="confirmPrinterTurnedOff()" style="padding: 12px 30px; font-weight: 700;">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>I have turned off the printer</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -1100,7 +1804,7 @@
       </div>
       <p style="color: var(--text-main); font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
         When the OK button is clicked, initialization is done.<br><br>
-        Selected counters will be reset to <strong>0% (0 points)</strong> for <strong id="initConfirmTarget" style="color: var(--accent-cyan);">Epson Printer</strong>.
+        Selected counters will be reset to <strong>0% (0 points)</strong> for <strong id="initConfirmTarget" style="color: var(--accent-cyan);">Printer</strong>.
       </p>
       <div style="display: flex; justify-content: flex-end; gap: 12px;">
         <button class="btn btn-secondary" onclick="closeInitConfirmModal()">Cancel</button>
@@ -1113,11 +1817,45 @@
        CLEANING COUNTDOWN & HARDWARE SYNCHRONIZATION OVERLAY
        =================================================================== -->
   <div class="modal-backdrop" id="cleanModal">
-    <div class="modal-box" style="text-align: center; width: 480px;">
-      <div class="modal-icon-badge info" id="cleanModalIcon" style="margin: 0 auto 16px auto;">
-        <svg class="spin-slow" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
-        </svg>
+    <div class="modal-box" style="text-align: center; width: 520px; max-width: 95vw;">
+      
+      <!-- Mechanical Printhead Carriage & Capping Station Simulation -->
+      <div class="printhead-anim-container">
+        <!-- Top Guide Rail & Belt -->
+        <div class="carriage-rail">
+          <div class="carriage-belt"></div>
+        </div>
+
+        <!-- Sliding Printhead Carriage Unit -->
+        <div class="carriage-unit" id="carriageUnit">
+          <div class="carriage-head-box">
+            <div class="carriage-label">HEAD</div>
+            <div class="carriage-nozzle-plate">
+              <span class="nozzle-dot c-dot"></span>
+              <span class="nozzle-dot m-dot"></span>
+              <span class="nozzle-dot y-dot"></span>
+              <span class="nozzle-dot k-dot"></span>
+            </div>
+          </div>
+          <!-- Ink Droplet Purge Stream -->
+          <div class="ink-spray-cluster" id="inkSprayCluster">
+            <span class="ink-spray-drop drop-c"></span>
+            <span class="ink-spray-drop drop-m"></span>
+            <span class="ink-spray-drop drop-y"></span>
+            <span class="ink-spray-drop drop-k"></span>
+          </div>
+        </div>
+
+        <!-- Capping Station / Suction Pad (Right side) -->
+        <div class="capping-station">
+          <div class="capping-sponge"></div>
+          <div class="capping-pump-icon" title="Peristaltic Suction Pump">
+            <svg class="pump-gear-spin" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </div>
+        </div>
       </div>
 
       <h3 style="color: var(--text-main); font-size: 20px; font-weight: 800; margin-bottom: 6px;" id="cleanModalTitle">
@@ -1127,17 +1865,36 @@
         Peristaltic pump engagement & initial ink suction draw...
       </p>
 
-      <div style="font-size: 52px; font-weight: 800; font-family: var(--font-mono); color: var(--text-main); margin: 12px 0;" id="cleanTimerVal">
+      <div style="font-size: 48px; font-weight: 800; font-family: var(--font-mono); color: var(--text-main); margin: 8px 0;" id="cleanTimerVal">
         180s
       </div>
 
-      <div class="sub-counter-bar" style="height: 12px; border-radius: 6px; margin: 18px 0; background: var(--bg-card);">
+      <div class="sub-counter-bar" style="height: 12px; border-radius: 6px; margin: 16px 0; background: var(--bg-card);">
         <div class="sub-counter-fill" id="cleanProgressBar" style="width: 0%; transition: width 0.3s ease;"></div>
       </div>
 
       <p style="font-size: 12px; color: var(--text-muted); font-weight: 500; margin-bottom: 0;" id="cleanWarningNote">
         Do not turn off printer or unplug USB cable while the peristaltic pump motor is running.
       </p>
+
+      <!-- Active In-Progress Controls -->
+      <div id="cleanActiveControls" style="display: flex; justify-content: center; gap: 10px; margin-top: 18px; border-top: 1px solid var(--border-subtle); padding-top: 14px;">
+        <button class="btn btn-secondary" onclick="closeCleanModal()" style="font-size: 13px; padding: 7px 16px;" title="Allow cycle to run in background while you continue using the app">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 14 10 14 10 20"></polyline>
+            <polyline points="20 10 14 10 14 4"></polyline>
+            <line x1="14" y1="10" x2="21" y2="3"></line>
+            <line x1="3" y1="21" x2="10" y2="14"></line>
+          </svg>
+          <span>Run in Background</span>
+        </button>
+        <button class="btn btn-danger" onclick="stopCleaningNow()" style="font-size: 13px; padding: 7px 18px; color: #fff; background: var(--accent-rose); border-color: var(--accent-rose); font-weight: 700; box-shadow: 0 2px 8px rgba(244, 63, 94, 0.35);" title="Stop printer cleaning immediately, purge spooler queue, and cancel active operations">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+            <rect x="5" y="5" width="14" height="14" rx="2"></rect>
+          </svg>
+          <span>Stop Cleaning Now</span>
+        </button>
+      </div>
 
       <div id="cleanModalActions" style="display: none; justify-content: center; gap: 12px; margin-top: 24px; border-top: 1px solid var(--border-subtle); padding-top: 18px;">
         <button class="btn btn-primary" onclick="printNozzleCheckFromModal()">
@@ -1146,14 +1903,17 @@
             <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
             <rect x="6" y="14" width="12" height="8"></rect>
           </svg>
-          <span>Print Nozzle Check Pattern</span>
+          <span>Print Nozzle Check</span>
         </button>
         <button class="btn btn-secondary" onclick="closeCleanModal()">
-          <span>Done</span>
+          <span>Finish</span>
         </button>
       </div>
     </div>
   </div>
+
+  <!-- Floating Toast Notification Hub -->
+  <div id="toastContainer" class="toast-container"></div>
 
   <script type="module" src="/src/main.js"></script>
 </body>

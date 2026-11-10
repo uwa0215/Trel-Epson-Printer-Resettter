@@ -1,7 +1,7 @@
 {
   "name": "printer-resetter",
   "version": "1.0.0",
-  "description": "**AdjProg Pro Universal** is a standalone Windows desktop service utility for diagnosing, maintaining, reading, and resetting waste ink pad counters across **234 Epson printer models**.",
+  "description": "**AdjProg Pro Universal** is a standalone Windows desktop service utility for diagnosing, maintaining, reading, and resetting waste ink pad counters across **234 printer models**.",
   "main": "electron/main.js",
   "scripts": {
     "app": "electron .",
@@ -13,7 +13,7 @@
     "dist:installer": "npm run build:ui && electron-builder --win nsis",
     "dist:portable": "npm run build:ui && electron-builder --win portable",
     "server": "node server/index.js",
-    "build:native": "C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\csc.exe /nologo /optimize+ /platform:x86 /target:exe /out:server\\native\\spooler_bridge.exe server\\native\\SpoolerBridge.cs"
+    "build:native": "C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\csc.exe /nologo /optimize+ /platform:x86 /r:System.Drawing.dll /target:exe /out:server\\native\\spooler_bridge.exe server\\native\\SpoolerBridge.cs"
   },
   "author": "",
   "license": "ISC",
@@ -29,8 +29,8 @@
     "vite": "^8.3.4"
   },
   "build": {
-    "appId": "com.trel.epsonuniversaltool",
-    "productName": "Trel- Epson Universal Tool",
+    "appId": "com.trel.universaltool",
+    "productName": "Trel- Universal Tool",
     "copyright": "Copyright © 2026 Trel",
     "directories": {
       "output": "release"
@@ -48,6 +48,10 @@
       {
         "from": "server/native/spooler_bridge.exe",
         "to": "server/native/spooler_bridge.exe"
+      },
+      {
+        "from": "server/native/apdadrv.dll",
+        "to": "server/native/apdadrv.dll"
       },
       {
         "from": "data/models_db.json",
@@ -89,7 +93,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Trel- Epson Universal Tool",
+      "shortcutName": "Trel- Universal Tool",
       "runAfterFinish": true
     },
     "portable": {

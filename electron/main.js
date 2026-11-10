@@ -1,5 +1,5 @@
 /**
- * Trel- Epson Universal Maintenance Tool - Electron Native Desktop Main Process
+ * Trel- Universal Maintenance Tool - Electron Native Desktop Main Process
  * Creates a dedicated, high-performance standalone Windows application window.
  */
 
@@ -13,8 +13,8 @@ let serverInstance = null;
 const SERVER_PORT = parseInt(process.env.PORT, 10) || 3000;
 
 // Set unique app name & isolated user data path to avoid collision with other Electron apps
-app.setName('TrelEpsonUniversalTool');
-app.setPath('userData', path.join(app.getPath('appData'), 'TrelEpsonUniversalTool'));
+app.setName('TrelUniversalTool');
+app.setPath('userData', path.join(app.getPath('appData'), 'TrelUniversalTool'));
 
 // Single-instance lock: ensure only one desktop window instance runs at a time
 const gotTheLock = app.requestSingleInstanceLock();
@@ -33,7 +33,7 @@ if (!gotTheLock) {
   app.whenReady().then(createWindow);
 }
 
-function checkEpsonServer(port) {
+function checkBackendServer(port) {
   return new Promise((resolve) => {
     const req = http.get(`http://127.0.0.1:${port}/api/health`, (res) => {
       let data = '';
@@ -41,7 +41,7 @@ function checkEpsonServer(port) {
       res.on('end', () => {
         try {
           const parsed = JSON.parse(data);
-          resolve(parsed.app === 'epson-universal-tool');
+          resolve(parsed.app === 'universal-printer-tool' || parsed.name === 'universal-printer-tool');
         } catch {
           resolve(false);
         }
@@ -57,7 +57,7 @@ function checkEpsonServer(port) {
 
 async function startBackendServer() {
   // 1. Fast check: is our engine already active on the preferred port?
-  const alreadyRunning = await checkEpsonServer(SERVER_PORT);
+  const alreadyRunning = await checkBackendServer(SERVER_PORT);
   if (alreadyRunning) {
     console.log(`[Electron] Connected to existing active engine on port ${SERVER_PORT}`);
     return SERVER_PORT;
@@ -74,7 +74,7 @@ async function startBackendServer() {
   } catch (err) {
     console.error('[Electron] Failed to start backend server:', err);
     // If startServer encountered an issue, double check if server is active
-    if (await checkEpsonServer(SERVER_PORT)) {
+    if (await checkBackendServer(SERVER_PORT)) {
       return SERVER_PORT;
     }
     throw err;
@@ -98,7 +98,7 @@ async function createWindow() {
       height: 840,
       minWidth: 360,
       minHeight: 500,
-      title: 'Trel- Epson Universal Maintenance Tool',
+      title: 'Trel- Universal Maintenance Tool',
       backgroundColor: '#0a0d14',
       icon: iconPath,
       show: true,

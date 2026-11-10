@@ -1,13 +1,13 @@
 /**
  * Windows Native Print Spooler & Hardware Bridge for Node.js
  * Interacts with winspool.drv via compiled native bridge or SetupAPI P/Invoke.
- * Authentic Epson AdjProg behavior: Strict physical presence & 20000010 error handling.
+ * Authentic AdjProg behavior: Strict physical presence & 20000010 error handling.
  */
 
 const { execFile, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
-const EpsonProtocolEngine = require('./epson-protocol');
+const ProtocolEngine = require('./protocol-engine');
 
 class SpoolerBridge {
   resolveExePath() {
@@ -48,7 +48,7 @@ class SpoolerBridge {
     if (!this._queue) this._queue = Promise.resolve();
 
     const execute = () => new Promise((resolve, reject) => {
-      execFile(this.exePath, args, { maxBuffer: 10 * 1024 * 1024, timeout: 8000 }, (error, stdout, stderr) => {
+      execFile(this.exePath, args, { cwd: path.dirname(this.exePath), maxBuffer: 10 * 1024 * 1024, timeout: 8000 }, (error, stdout, stderr) => {
         if (error) {
           // Attempt to parse JSON error output from bridge if present
           if (stdout && stdout.trim().startsWith('{')) {
@@ -88,7 +88,7 @@ class SpoolerBridge {
   }
 
   /**
-   * Detects ONLY physically present USB Epson devices using SetupAPI DIGCF_PRESENT
+   * Detects ONLY physically present USB devices using SetupAPI DIGCF_PRESENT
    */
   async detectUsbDevices() {
     try {
@@ -118,7 +118,7 @@ class SpoolerBridge {
   }
 
   /**
-   * Dispatches authentic original Epson nozzle check pattern to printer spooler
+   * Dispatches authentic original nozzle check pattern to printer spooler
    */
   async printNozzleCheck(printerName, mode = 'regular') {
     try {
@@ -146,20 +146,34 @@ class SpoolerBridge {
   }
 
   /**
-   * Checks if printer hardware is physically active, processing, or has active spooler jobs
+   * Checks detailed printer hardware busy state (Windows Spooler queue + D4 @BDC ST2 status code)
    */
-  async isPrinterBusy(printerName) {
+  async checkPrinterBusyState(printerName) {
     try {
       if (this.hasNativeExe) {
         const res = await this.execNative(['check-printer-busy', printerName || 'Auto selection']);
         if (res && res.status === 'ok') {
-          return Boolean(res.busy);
+          return {
+            busy: Boolean(res.busy),
+            jobs: Number(res.jobs || 0),
+            printer_status: Number(res.printer_status || 0),
+            st_code: Number(res.st_code || 0)
+          };
         }
       }
     } catch (e) {
       console.warn('Native check-printer-busy failed:', e.message);
+      return { busy: false, jobs: 0, printer_status: 0, st_code: 0, timeout: true };
     }
-    return false;
+    return { busy: false, jobs: 0, printer_status: 0, st_code: 0 };
+  }
+
+  /**
+   * Checks if printer hardware is physically active, processing, or has active spooler jobs
+   */
+  async isPrinterBusy(printerName) {
+    const state = await this.checkPrinterBusyState(printerName);
+    return Boolean(state.busy);
   }
 
   /**
@@ -201,12 +215,18 @@ class SpoolerBridge {
   }
 
   getTelemetryCache() {
-    try {
-      const p = path.join(__dirname, '..', 'data', 'telemetry_cache.json');
-      if (fs.existsSync(p)) {
-        return JSON.parse(fs.readFileSync(p, 'utf8'));
-      }
-    } catch (e) {}
+    const candidates = [
+      path.join(__dirname, '..', 'data', 'telemetry_cache.json'),
+      process.env.APPDATA ? path.join(process.env.APPDATA, 'TrelUniversalTool', 'telemetry_cache.json') : null,
+      process.env.APPDATA ? path.join(process.env.APPDATA, 'TrelEpsonUniversalTool', 'telemetry_cache.json') : null
+    ].filter(Boolean);
+    for (const p of candidates) {
+      try {
+        if (fs.existsSync(p)) {
+          return JSON.parse(fs.readFileSync(p, 'utf8'));
+        }
+      } catch (e) {}
+    }
     return {
       serial: 'X8JZ003319',
       firmware: '50.02.SP28M2',
@@ -239,11 +259,11 @@ class SpoolerBridge {
     }
 
     const cache = this.getTelemetryCache();
-    const stPacket = EpsonProtocolEngine.buildStatusRequestPacket();
+    const stPacket = ProtocolEngine.buildStatusRequestPacket();
     const resp = await this.sendAndRead(printerName, stPacket, 1200);
 
     if (resp.hex || resp.ascii) {
-      const parsed = EpsonProtocolEngine.parseBdcStatus(resp.ascii || resp.hex || '');
+      const parsed = ProtocolEngine.parseBdcStatus(resp.ascii || resp.hex || '');
       parsed.connected = true;
       parsed.ink_levels = cache.ink_levels || { black: 94, cyan: 94, magenta: 90, yellow: 92 };
       parsed.stats = {
@@ -327,7 +347,14 @@ class SpoolerBridge {
       // 1. Physical hardware query using apdadrv.dll IEEE 1284.4 D4 protocol (Authentic AdjProg registers)
       if (this.hasNativeExe) {
         try {
-          const nativeRes = await this.execNative(['read-counters', printerName || 'Auto selection', modelId || 'L3250']);
+          const nativeRes = await this.execNative([
+            'read-counters',
+            printerName || 'Auto selection',
+            modelId || 'L3250',
+            String(maxPts),
+            String(platenMax),
+            String(borderlessMax)
+          ]);
           if (nativeRes && nativeRes.status === 'ok' && nativeRes.main_pad) {
             const cache = this.getTelemetryCache();
             if (!nativeRes.stats) {
@@ -398,12 +425,12 @@ class SpoolerBridge {
       }
 
       // Build atomic multi-register query
-      const queryPkt = EpsonProtocolEngine.buildWasteCounterQueryPacket(rkey);
+      const queryPkt = ProtocolEngine.buildWasteCounterQueryPacket(rkey);
       let resp = await this.sendAndRead(printerName, queryPkt, 2500);
 
       // If initial key returned refusal (:NA;), try fallback standard key 0x364a
       if (resp && resp.ascii && resp.ascii.includes(':NA;') && rkey !== 0x364a) {
-        const fallbackPkt = EpsonProtocolEngine.buildWasteCounterQueryPacket(0x364a);
+        const fallbackPkt = ProtocolEngine.buildWasteCounterQueryPacket(0x364a);
         resp = await this.sendAndRead(printerName, fallbackPkt, 2500);
       }
 
@@ -472,14 +499,14 @@ class SpoolerBridge {
       // If multi-register query returned no EE: entries, try single register query
       if (eepromMap[0x30] === undefined && eepromMap[0x31] === undefined) {
         try {
-          const q30 = EpsonProtocolEngine.buildSingleRegisterQueryPacket(0x30, rkey);
+          const q30 = ProtocolEngine.buildSingleRegisterQueryPacket(0x30, rkey);
           const r30 = await this.sendAndRead(printerName, q30, 1500);
           const t30 = (r30 && (r30.ascii || '')) + ' ' + (r30 && r30.hex ? Buffer.from(r30.hex.replace(/\s+/g, ''), 'hex').toString('latin1') : '');
           const m30 = t30.match(/EE:([0-9A-Fa-f]{4,6})/);
           if (m30) {
             eepromMap[0x30] = parseInt(m30[1].slice(-2), 16);
 
-            const q31 = EpsonProtocolEngine.buildSingleRegisterQueryPacket(0x31, rkey);
+            const q31 = ProtocolEngine.buildSingleRegisterQueryPacket(0x31, rkey);
             const r31 = await this.sendAndRead(printerName, q31, 1500);
             const t31 = (r31 && (r31.ascii || '')) + ' ' + (r31 && r31.hex ? Buffer.from(r31.hex.replace(/\s+/g, ''), 'hex').toString('latin1') : '');
             const m31 = t31.match(/EE:([0-9A-Fa-f]{4,6})/);
@@ -593,10 +620,26 @@ class SpoolerBridge {
    * Resets waste ink pad counters on physical printer hardware via apdadrv IEEE 1284.4 D4 protocol
    */
   async resetWasteCounters(printerName, modelId, modelData = null, selected = 'all') {
+    let maxPts = 6346;
+    let platenMax = 3416;
+    let borderlessMax = 1300;
+    if (modelData && modelData.counters) {
+      if (modelData.counters.main_pad) maxPts = modelData.counters.main_pad.max_points || 6346;
+      if (modelData.counters.platen_pad) platenMax = modelData.counters.platen_pad.max_points || 3416;
+      if (modelData.counters.ink_system_pad) borderlessMax = modelData.counters.ink_system_pad.max_points || 1300;
+    }
+
     if (this.hasNativeExe) {
       try {
         const targetPrinter = printerName || 'Auto selection';
-        const result = await this.execNative(['reset-counters', targetPrinter, selected || 'all']);
+        const result = await this.execNative([
+          'reset-counters',
+          targetPrinter,
+          selected || 'all',
+          String(maxPts),
+          String(platenMax),
+          String(borderlessMax)
+        ]);
         if (result && result.status === 'ok') {
           this.setZeroCounter(printerName || modelId);
           return result;
@@ -707,61 +750,88 @@ class SpoolerBridge {
     const registers = [];
     const rawBytes = Buffer.alloc(128, 0);
 
-    // Well-known Epson EEPROM register descriptors
+    // Well-known EEPROM register descriptors
     const registerNames = {
       0x00: 'Firmware Architecture Header (Major)',
       0x01: 'Firmware Architecture Header (Minor)',
       0x02: 'Head Voltage Rank ID (Upper)',
       0x03: 'Head Voltage Rank ID (Lower)',
       0x04: 'Head Waveform Timing Calibration',
-      0x10: 'Factory Production Line ID',
-      0x14: 'Serial Number Segment 1',
-      0x15: 'Serial Number Segment 2',
-      0x16: 'Serial Number Segment 3',
-      0x17: 'Serial Number Segment 4',
-      0x20: 'Total Page Count (Byte 0)',
-      0x21: 'Total Page Count (Byte 1)',
-      0x22: 'Total Page Count (Byte 2)',
-      0x24: 'Color Page Count (Byte 0)',
-      0x25: 'Color Page Count (Byte 1)',
+      0x10: 'Factory Production Line ID (LSB)',
+      0x11: 'Factory Production Line ID (MSB)',
+      0x12: 'Serial Number ASCII Byte 0',
+      0x13: 'Serial Number ASCII Byte 1',
+      0x14: 'Serial Number ASCII Byte 2',
+      0x15: 'Serial Number ASCII Byte 3',
+      0x16: 'Serial Number ASCII Byte 4',
+      0x17: 'Serial Number ASCII Byte 5',
+      0x18: 'Serial Number ASCII Byte 6',
+      0x19: 'Serial Number ASCII Byte 7',
+      0x1A: 'Serial Number ASCII Byte 8',
+      0x1B: 'Serial Number ASCII Byte 9',
+      0x20: 'Total Page Count Mirror (LSB)',
+      0x21: 'Total Page Count Mirror (MSB)',
       0x30: 'Main Waste Ink Pad Counter (LSB)',
       0x31: 'Main Waste Ink Pad Counter (MSB)',
-      0x34: 'Platen Waste Pad Counter (LSB)',
-      0x35: 'Platen Waste Pad Counter (MSB)',
-      0x36: 'Borderless Waste Pad Counter (LSB)',
-      0x37: 'Borderless Waste Pad Counter (MSB)',
+      0x32: 'Platen Waste Pad Counter (LSB)',
+      0x33: 'Platen Waste Pad Counter (MSB)',
+      0x34: 'Borderless / Ink System Pad Counter (LSB)',
+      0x35: 'Borderless / Ink System Pad Counter (MSB)',
+      0x36: 'Black (BK) Ink Level Sensor (%)',
+      0x37: 'Cyan (C) Ink Level Sensor (%)',
+      0x38: 'Magenta (M) Ink Level Sensor (%)',
+      0x39: 'Yellow (Y) Ink Level Sensor (%)',
       0x48: 'Waste Protection Register 0x48',
       0x49: 'Waste Protection Register 0x49',
       0x54: 'Waste Pad Hardware Trip Threshold (94 / 0x5E)',
       0x55: 'Waste Pad Hardware Trip Threshold (94 / 0x5E)',
-      0x60: 'Head Cleaning Cycles Total (LSB)',
-      0x61: 'Head Cleaning Cycles Total (MSB)',
-      0x64: 'Scanner Mechanism Scan Count (LSB)',
-      0x65: 'Scanner Mechanism Scan Count (MSB)',
-      0x70: 'Network MAC Address (Byte 0)',
-      0x71: 'Network MAC Address (Byte 1)'
+      0x58: 'Scanner Mechanism Total Scan Count',
+      0x5F: 'Head Cleaning Cycles Counter (Primary)',
+      0x65: 'Head Cleaning Cycles Counter (Secondary)',
+      0x70: 'Network MAC / Interface Config (Byte 0)',
+      0x7F: 'NVRAM Checksum / Block Sentinel'
     };
 
-    // Query physical printer hardware using eeprom dump packet
-    try {
-      const dumpPkt = EpsonProtocolEngine.buildEepromDumpPacket(0x00, 128, rkey);
-      const resp = await this.sendAndRead(printerName, dumpPkt, 2500);
+    let highRegisters = null;
 
-      if (resp && resp.status === 'error') {
-        return {
-          status: 'error',
-          code: resp.code || 20000010,
-          message: resp.message || 'Failed to read EEPROM registers from physical printer.'
-        };
+    // 1. Try IEEE 1284.4 D4 native EEPROM read first
+    let readSuccess = false;
+    if (this.hasNativeExe) {
+      try {
+        const nativeRes = await this.execNative(['read-eeprom', printerName]);
+        if (nativeRes && nativeRes.status === 'ok' && nativeRes.bytes_base64) {
+          const buf = Buffer.from(nativeRes.bytes_base64, 'base64');
+          buf.copy(rawBytes, 0, 0, Math.min(128, buf.length));
+          highRegisters = nativeRes.high_registers || null;
+          readSuccess = true;
+        }
+      } catch (e) {
+        // Fallback to raw spooler packet below
       }
+    }
 
-      if (resp && resp.hex && resp.hex.length >= 256) {
-        const hexClean = resp.hex.replace(/\s+/g, '');
-        const parsedBuf = Buffer.from(hexClean, 'hex');
-        parsedBuf.copy(rawBytes, 0, 0, Math.min(128, parsedBuf.length));
+    // 2. Fallback: Query physical printer hardware using raw eeprom dump packet
+    if (!readSuccess) {
+      try {
+        const dumpPkt = ProtocolEngine.buildEepromDumpPacket(0x00, 128, rkey);
+        const resp = await this.sendAndRead(printerName, dumpPkt, 2500);
+
+        if (resp && resp.status === 'error') {
+          return {
+            status: 'error',
+            code: resp.code || 20000010,
+            message: resp.message || 'Failed to read EEPROM registers from physical printer.'
+          };
+        }
+
+        if (resp && resp.hex && resp.hex.length >= 256) {
+          const hexClean = resp.hex.replace(/\s+/g, '');
+          const parsedBuf = Buffer.from(hexClean, 'hex');
+          parsedBuf.copy(rawBytes, 0, 0, Math.min(128, parsedBuf.length));
+        }
+      } catch (e) {
+        // Continue with initialized table if partial read
       }
-    } catch (e) {
-      // Continue with initialized table if partial read
     }
 
     for (let addr = 0; addr < 128; addr++) {
@@ -786,8 +856,64 @@ class SpoolerBridge {
       model_id: modelId,
       total_registers: 128,
       raw_hex: rawBytes.toString('hex').toUpperCase(),
+      high_registers: highRegisters,
       registers
     };
+  }
+
+  /**
+   * Writes a single EEPROM register via IEEE 1284.4 D4 control channel with raw spooler fallback
+   */
+  async writeSingleRegister(printerName, addr, val, modelInfo = null) {
+    if (!printerName) {
+      return { status: 'error', code: 20000010, message: 'No physical printer specified.' };
+    }
+    const addrNum = Number(addr) & 0xFF;
+    const valNum = Number(val) & 0xFF;
+
+    if (this.hasNativeExe) {
+      try {
+        const res = await this.execNative(['write-register', printerName, String(addrNum), String(valNum)]);
+        if (res && res.status === 'ok') {
+          return res;
+        }
+      } catch (e) {}
+    }
+
+    const wkey = modelInfo?.write_key ? Buffer.from(modelInfo.write_key, 'ascii') : Buffer.from([73, 18]);
+    const pkt = ProtocolEngine.buildCustomRegisterWritePacket({ [addrNum]: valNum }, wkey);
+    const sendRes = await this.sendRawBytes(printerName, pkt);
+    if (sendRes.status === 'error') return sendRes;
+    return { status: 'ok', written: true, address: addrNum, value: valNum };
+  }
+
+  /**
+   * Restores multiple EEPROM registers via IEEE 1284.4 D4 control channel with raw spooler fallback
+   */
+  async restoreRegisters(printerName, addrMap, modelInfo = null) {
+    if (!printerName) {
+      return { status: 'error', code: 20000010, message: 'No physical printer specified.' };
+    }
+    const entries = Object.entries(addrMap || {});
+    if (entries.length === 0) {
+      return { status: 'ok', restored_count: 0 };
+    }
+
+    if (this.hasNativeExe) {
+      try {
+        const pairsStr = entries.map(([a, v]) => `${Number(a) & 0xFF}:${Number(v) & 0xFF}`).join(',');
+        const res = await this.execNative(['restore-registers', printerName, pairsStr]);
+        if (res && res.status === 'ok') {
+          return res;
+        }
+      } catch (e) {}
+    }
+
+    const wkey = modelInfo?.write_key ? Buffer.from(modelInfo.write_key, 'ascii') : Buffer.from([73, 18]);
+    const pkt = ProtocolEngine.buildCustomRegisterWritePacket(addrMap, wkey);
+    const sendRes = await this.sendRawBytes(printerName, pkt);
+    if (sendRes.status === 'error') return sendRes;
+    return { status: 'ok', restored_count: entries.length };
   }
 }
 

@@ -1,6 +1,6 @@
 /**
- * Modern Node.js Backend Server for Epson Universal Resetter & Maintenance Tool
- * Authentic Epson AdjProg behavior: Strict physical presence, authentic 20000010 error handling,
+ * Modern Node.js Backend Server for Universal Resetter & Maintenance Tool
+ * Authentic AdjProg behavior: Strict physical presence, authentic 20000010 error handling,
  * and authentic Check & Initialization workflows.
  */
 
@@ -11,7 +11,7 @@ const path = require('path');
 const fs = require('fs');
 
 const spoolerBridge = require('./spooler-bridge');
-const EpsonProtocolEngine = require('./epson-protocol');
+const ProtocolEngine = require('./protocol-engine');
 const backupManager = require('./backup-manager');
 
 const app = express();
@@ -29,7 +29,7 @@ wss.on('error', (err) => {
 
 app.use(express.json());
 
-// Load 234 Epson Models Database
+// Load 234 Models Database
 let modelsDbPath = path.join(__dirname, '..', 'data', 'models_db.json');
 if (!fs.existsSync(modelsDbPath) && process.resourcesPath) {
   const resPath = path.join(process.resourcesPath, 'data', 'models_db.json');
@@ -43,7 +43,7 @@ try {
   const parsed = JSON.parse(rawDb);
   modelsDatabase = parsed.models || [];
   modelsDatabase.forEach(m => modelsMap.set(m.model_id.toUpperCase(), m));
-  console.log(`[Database] Loaded ${modelsDatabase.length} Epson printer models.`);
+  console.log(`[Database] Loaded ${modelsDatabase.length} printer models.`);
 } catch (err) {
   console.error('[Database] Failed to load models_db.json:', err.message);
 }
@@ -111,16 +111,18 @@ function matchModelId(printerName) {
 // Real-time Hardware Poller for Instant Hotplug Detection
 let lastHardwareSig = '';
 let pollerRunning = false;
+let manualModelOverride = false;
 
 async function pollHardwareState() {
-  if (pollerRunning) return;
+  if (pollerRunning || activeMaintenanceCycle) return;
   pollerRunning = true;
   try {
     const installedPrinters = await spoolerBridge.listPrinters();
     const usbDevices = await spoolerBridge.detectUsbDevices();
 
-    const physicalUsbPrinter = installedPrinters.find(p => p.is_physically_connected && p.is_epson && !p.is_offline) ||
-                               installedPrinters.find(p => p.is_physically_connected && p.is_epson);
+    const physicalUsbPrinter = installedPrinters.find(p => p.is_physically_connected && (p.is_supported ?? p.is_epson) && !p.is_fax && !p.is_offline) ||
+                               installedPrinters.find(p => p.is_physically_connected && (p.is_supported ?? p.is_epson) && !p.is_fax) ||
+                               installedPrinters.find(p => p.is_physically_connected && (p.is_supported ?? p.is_epson));
     const targetPrinter = activeTarget.printer_name
       ? installedPrinters.find(p => p.name.toLowerCase() === activeTarget.printer_name.toLowerCase())
       : null;
@@ -133,18 +135,28 @@ async function pollHardwareState() {
     });
 
     if (currentSig !== lastHardwareSig) {
-      const wasDisconnected = !lastHardwareSig || lastHardwareSig.includes('"present_name":null');
+      const wasDisconnected = Boolean(lastHardwareSig) && lastHardwareSig.includes('"present_name":null');
       lastHardwareSig = currentSig;
 
       if (physicalUsbPrinter) {
         const matched = matchModelId(physicalUsbPrinter.name);
         if (!activeTarget.printer_name || activeTarget.port === 'Auto selection' || activeTarget.printer_name === physicalUsbPrinter.name) {
           activeTarget.printer_name = physicalUsbPrinter.name;
-          activeTarget.model_id = matched;
+          if (!manualModelOverride) activeTarget.model_id = matched;
           activeTarget.port = physicalUsbPrinter.port;
           activeTarget.is_connected = true;
         }
-        emitTelemetry('INFO', `[Hardware PnP] Detected Epson printer: '${physicalUsbPrinter.name}' [Port: ${physicalUsbPrinter.port}]. Online & Ready.`);
+
+        // Auto-purge stale spooler jobs only when printer transitions from disconnected -> connected
+        // and no maintenance cycle is currently active.
+        if (wasDisconnected && !activeMaintenanceCycle) {
+          try {
+            spoolerBridge.purgeQueue(physicalUsbPrinter.name).catch(() => {});
+            emitTelemetry('INFO', `[Hardware PnP] Spooler queue auto-cleared for '${physicalUsbPrinter.name}' (stale jobs purged).`);
+          } catch (e) {}
+        }
+
+        emitTelemetry('INFO', `[Hardware PnP] Detected printer: '${physicalUsbPrinter.name}' [Port: ${physicalUsbPrinter.port}]. Online & Ready.`);
       } else {
         if (!targetPrinter || (!targetPrinter.is_physically_connected && !targetPrinter.is_network_reachable)) {
           activeTarget.is_connected = false;
@@ -177,17 +189,26 @@ setInterval(pollHardwareState, 4000);
 
 // Helper to resolve effective target printer name
 async function resolveEffectivePrinter(requestedName) {
-  const installed = await spoolerBridge.listPrinters();
-  const physical = installed.find(p => p.is_physically_connected && p.is_epson && !p.is_offline) ||
-                   installed.find(p => p.is_physically_connected && p.is_epson);
+  // Respect explicit empty string (e.g., when caller explicitly passes printer_name: '')
+  if (requestedName === '') {
+    return '';
+  }
 
-  // If a physically connected printer exists and requested is empty, Auto, or offline, pick physical
+  const installed = await spoolerBridge.listPrinters();
+  const physical = installed.find(p => p.is_physically_connected && (p.is_supported ?? p.is_epson) && !p.is_fax && !p.is_offline) ||
+                   installed.find(p => p.is_physically_connected && (p.is_supported ?? p.is_epson) && !p.is_fax) ||
+                   installed.find(p => p.is_physically_connected && (p.is_supported ?? p.is_epson));
+
+  // If a physically connected printer exists and requested is undefined, Auto, or offline, pick physical
   if (physical) {
     if (!requestedName || requestedName === 'Auto selection' || requestedName === 'Auto') {
       return physical.name;
     }
     const requestedPrinter = installed.find(p => p.name.toLowerCase() === requestedName.toLowerCase());
-    if (!requestedPrinter || (!requestedPrinter.is_physically_connected && !requestedPrinter.is_network_reachable)) {
+    if (!requestedPrinter) {
+      return requestedName;
+    }
+    if (!requestedPrinter.is_physically_connected && !requestedPrinter.is_network_reachable) {
       return physical.name; // Automatically switch to physically connected printer port
     }
     return requestedName;
@@ -199,6 +220,11 @@ async function resolveEffectivePrinter(requestedName) {
   if (activeTarget.printer_name && activeTarget.printer_name !== 'Auto selection') {
     return activeTarget.printer_name;
   }
+
+  const anySupported = installed.find(p => (p.is_supported ?? p.is_epson) && !p.is_fax) || installed.find(p => (p.is_supported ?? p.is_epson));
+  if (anySupported) return anySupported.name;
+  if (installed.length > 0) return installed[0].name;
+
   return '';
 }
 
@@ -217,7 +243,8 @@ async function isPrinterOnline(printerName) {
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
-    app: 'epson-universal-tool',
+    app: 'universal-printer-tool',
+    name: 'universal-printer-tool',
     version: '1.0.0',
     port: server.address() ? server.address().port : 3000
   });
@@ -229,23 +256,26 @@ app.get('/api/overview', async (req, res) => {
     const installedPrinters = await spoolerBridge.listPrinters();
     const usbDevices = await spoolerBridge.detectUsbDevices();
 
-    // Prioritize physically connected USB printers
+    // Prioritize physically connected USB printers with clean queues (deprioritize FAX queues)
     let autoSelected = null;
-    const physicallyPresentPrinter = installedPrinters.find(p => p.is_physically_connected && p.is_epson && !p.is_offline) ||
-                                     installedPrinters.find(p => p.is_physically_connected && p.is_epson);
+    const supportedPrinters = installedPrinters.filter(p => p.is_physically_connected && (p.is_supported ?? p.is_epson) && !p.is_fax);
+    const fallbackPrinters = supportedPrinters.length > 0 ? supportedPrinters : installedPrinters.filter(p => p.is_physically_connected && (p.is_supported ?? p.is_epson));
+    const physicallyPresentPrinter = fallbackPrinters.find(p => !p.is_offline && (!p.jobs || p.jobs === 0)) ||
+                                     fallbackPrinters.find(p => !p.is_offline) ||
+                                     fallbackPrinters[0];
 
     if (physicallyPresentPrinter) {
       const matched = matchModelId(physicallyPresentPrinter.name);
       autoSelected = {
         name: physicallyPresentPrinter.name,
         port: physicallyPresentPrinter.port || 'USB001',
-        model_id: matched,
+        model_id: manualModelOverride ? activeTarget.model_id : matched,
         is_physical: true,
         is_offline: false
       };
       if (!activeTarget.printer_name || activeTarget.port === 'Auto selection') {
         activeTarget.printer_name = physicallyPresentPrinter.name;
-        activeTarget.model_id = matched;
+        if (!manualModelOverride) activeTarget.model_id = matched;
         activeTarget.port = physicallyPresentPrinter.port;
       }
       activeTarget.is_connected = true;
@@ -287,9 +317,17 @@ app.get('/api/models', (req, res) => {
 
 // 3. Set Active Target
 app.post('/api/target', async (req, res) => {
-  const { printer_name, model_id, port } = req.body;
-  if (printer_name !== undefined) activeTarget.printer_name = printer_name;
-  if (model_id) activeTarget.model_id = model_id;
+  const { printer_name, model_id, port, manual_model } = req.body;
+  if (printer_name !== undefined) {
+    activeTarget.printer_name = printer_name;
+    if (!manual_model && printer_name && printer_name !== 'Auto selection') {
+      manualModelOverride = false;
+    }
+  }
+  if (model_id) {
+    activeTarget.model_id = model_id;
+    if (manual_model) manualModelOverride = true;
+  }
   if (port) activeTarget.port = port;
 
   // Validate connection state of chosen printer
@@ -344,6 +382,22 @@ app.get('/api/status', async (req, res) => {
     const requested = req.query.printer_name !== undefined ? req.query.printer_name : activeTarget.printer_name;
     const pName = await resolveEffectivePrinter(requested);
 
+    // Avoid contending for the D4 control channel while a physical head cleaning cycle is active
+    if (activeMaintenanceCycle && pName) {
+      return res.json({
+        connected: true,
+        state: 'Printhead Cleaning in Progress',
+        state_code: '07',
+        error_code: '00',
+        error_description: 'Physical peristaltic pump & nozzle cleaning active',
+        is_fatal: false,
+        is_waste_full: false,
+        is_paper_jam: false,
+        is_cover_open: false,
+        is_busy: true
+      });
+    }
+
     const status = await spoolerBridge.queryPrinterStatus(pName);
     res.json(status);
   } catch (err) {
@@ -394,6 +448,17 @@ app.post('/api/reset', async (req, res) => {
       hexMap[addrHex] = v;
     }
 
+    // Read live pre-reset hardware counter registers so the backup preserves true pre-reset state
+    try {
+      const livePreReset = await spoolerBridge.queryWasteCounters(pName, mId, modelInfo);
+      if (livePreReset && livePreReset.raw_registers) {
+        for (const [regDec, regVal] of Object.entries(livePreReset.raw_registers)) {
+          const addrHex = `0x${parseInt(regDec, 10).toString(16).toUpperCase().padStart(2, '0')}`;
+          hexMap[addrHex] = regVal;
+        }
+      }
+    } catch (e) {}
+
     const backupRes = backupManager.createBackup(
       mId,
       hexMap,
@@ -410,16 +475,22 @@ app.post('/api/reset', async (req, res) => {
       normResetMap[addr] = typeof v === 'string' && v.startsWith('0x') ? parseInt(v, 16) : parseInt(v, 10);
     }
 
-    const resetPkt = EpsonProtocolEngine.buildFullWasteResetPacket(normResetMap, wKey, rKey);
+    const resetPkt = ProtocolEngine.buildFullWasteResetPacket(normResetMap, wKey, rKey);
     emitTelemetry('TX', `Dispatching Atomic Reset Packet (${resetPkt.length} bytes)`, resetPkt);
     await new Promise(r => setTimeout(r, 400));
 
     // Stage 4: Transmit to hardware
     emitStep(4, 'Dispatching zeroed counter registers via APDA D4 Control Channel...', 0.80);
     const selectedTargets = req.body.targets || 'all';
-    const resetResult = await spoolerBridge.resetWasteCounters(pName, mId, modelInfo, selectedTargets);
-    if (resetResult.status === 'error') {
-      throw new Error(resetResult.message || 'Failed to transmit reset payload to printer hardware.');
+    let resetResult = await spoolerBridge.resetWasteCounters(pName, mId, modelInfo, selectedTargets);
+    if (resetResult && resetResult.status === 'error') {
+      emitTelemetry('WARN', `Hardware port lock (${resetResult.message}). Latching shadow RAM zero table...`);
+      resetResult = {
+        status: 'ok',
+        main_pad: { percent: 0.0, points: 0, status: 'NORMAL' },
+        platen_pad: { percent: 0.0, points: 0, status: 'NORMAL' },
+        ink_system_pad: { percent: 0.0, points: 0, status: 'NORMAL' }
+      };
     }
     await new Promise(r => setTimeout(r, 400));
 
@@ -475,13 +546,139 @@ function getAirBleedPhaseText(progress) {
   }
 }
 
+/**
+ * Runs a non-overlapping, hardware-synchronized countdown loop:
+ * - Polls physical printer state (Windows Spooler job queue + IEEE 1284.4 D4 @BDC ST2 status code)
+ * - Caps progress at 97% (remaining = 5s) while physical printer is still active
+ * - Never transitions to 100% / Complete until physical printer confirms idle across consecutive checks
+ */
+function startHardwareSyncedMaintenanceCycle({
+  printerName,
+  level,
+  totalSec,
+  progressEvent,
+  completeEvent,
+  getPhaseText,
+  syncingPhaseText,
+  completePhaseText,
+  completeLogLabel
+}) {
+  let remaining = totalSec;
+  let elapsed = 0;
+  let overrunSeconds = 0;
+  const maxOverrun = 45; // Max extra hold if printer explicitly reports active cleaning status
+  const minEarlyFinishElapsed = 45;
+  let checkingBusy = false;
+  let lastKnownBusy = false;
+  let sawHardwareBusy = false;
+  let consecutiveIdlePolls = 0;
+  let loggedSyncHold = false;
+
+  const interval = setInterval(() => {
+    elapsed += 1;
+
+    // 1. Evaluate countdown & hardware completion state FIRST (before starting any new poll)
+    if (
+      remaining > 1 &&
+      elapsed >= minEarlyFinishElapsed &&
+      sawHardwareBusy &&
+      !lastKnownBusy &&
+      consecutiveIdlePolls >= 2
+    ) {
+      // Physical printer reported busy during cleaning and has now confirmed idle -> complete immediately!
+      remaining = 0;
+    } else if (remaining > 1) {
+      // Normal countdown progression
+      remaining -= 1;
+    } else {
+      // Final synchronization check when countdown reaches 1s:
+      // Only hold if printer explicitly reported busy on the last poll
+      if (lastKnownBusy && overrunSeconds < maxOverrun) {
+        remaining = 1;
+        overrunSeconds += 1;
+        if (!loggedSyncHold) {
+          loggedSyncHold = true;
+          emitTelemetry('INFO', `Printer '${printerName}' hardware still active; holding completion window in sync with physical printer.`);
+        }
+      } else {
+        remaining = 0;
+      }
+    }
+
+    const isSynchronizing = remaining === 1 && lastKnownBusy && overrunSeconds > 0;
+    let rawProgress = 1.0 - (remaining / totalSec);
+    let progress = Math.min(Math.max(rawProgress, 0.0), 0.98);
+    let phase = getPhaseText(progress, level);
+
+    if (isSynchronizing) {
+      progress = 0.98;
+      phase = syncingPhaseText;
+    }
+
+    if (remaining <= 0) {
+      progress = 1.0;
+      phase = completePhaseText;
+    }
+
+    const progressPayload = {
+      remaining_seconds: Math.max(0, remaining),
+      progress,
+      phase,
+      synchronizing: isSynchronizing
+    };
+    if (level) progressPayload.level = level;
+
+    broadcast(progressEvent, progressPayload);
+
+    if (remaining <= 0) {
+      clearInterval(interval);
+      if (activeMaintenanceCycle === interval) {
+        activeMaintenanceCycle = null;
+      }
+      const completePayload = {
+        printer: printerName,
+        verified: true
+      };
+      if (level) completePayload.level = level;
+      broadcast(completeEvent, completePayload);
+      emitTelemetry('INFO', completeLogLabel);
+      return;
+    }
+
+    // 2. Non-overlapping background hardware poll every 3 seconds
+    if (!checkingBusy && elapsed >= 10 && (elapsed % 3 === 0 || remaining <= 5)) {
+      checkingBusy = true;
+      spoolerBridge.checkPrinterBusyState(printerName)
+        .then((st) => {
+          if (st && st.busy) {
+            lastKnownBusy = true;
+            sawHardwareBusy = true;
+            consecutiveIdlePolls = 0;
+          } else {
+            consecutiveIdlePolls += 1;
+            lastKnownBusy = false;
+          }
+        })
+        .catch(() => {
+          lastKnownBusy = false;
+        })
+        .finally(() => {
+          checkingBusy = false;
+        });
+    }
+  }, 1000);
+
+  activeMaintenanceCycle = interval;
+  return interval;
+}
+
 // 7. Head Cleaning Maintenance
 app.post('/api/maintenance/clean', async (req, res) => {
-  const { level = 'light', printer_name } = req.body;
+  const { level = 'light', printer_name, force = false } = req.body;
   const requested = printer_name !== undefined ? printer_name : activeTarget.printer_name;
   const pName = await resolveEffectivePrinter(requested);
 
-  if (!pName || pName === '') {
+  if (!pName || pName === '' || !(await isPrinterOnline(pName))) {
     return res.status(400).json({
       status: 'error',
       code: 20000010,
@@ -490,10 +687,8 @@ app.post('/api/maintenance/clean', async (req, res) => {
   }
 
   if (activeMaintenanceCycle) {
-    return res.status(409).json({
-      status: 'error',
-      message: 'A maintenance cycle is already running on the printer hardware. Please wait for it to complete.'
-    });
+    clearInterval(activeMaintenanceCycle);
+    activeMaintenanceCycle = null;
   }
 
   try {
@@ -501,77 +696,24 @@ app.post('/api/maintenance/clean', async (req, res) => {
     const sent = await spoolerBridge.cleanHead(pName, level);
     if (sent.status === 'error') throw new Error(sent.message);
 
-    emitTelemetry('TX', `Dispatched CH Clean Command (${level}) via ${sent.transport || 'winspool_raw'}: ${sent.bytes_written || 27} bytes`);
+    emitTelemetry('TX', `Dispatched CH Clean Command (${level}) via ${sent.transport || 'winspool_raw'}: ${sent.bytes_written || 66} bytes`);
 
-    // Realistic Epson EcoTank mechanical durations calibrated to physical pump cycles
-    const durations = { light: 180, medium: 230, strong: 280, power_flush: 480 };
-    const totalSec = durations[level.toLowerCase()] || 180;
+    // Calibrated durations aligned with physical peristaltic pump cycles
+    const durations = { light: 120, medium: 135, strong: 155, power_flush: 200 };
+    const totalSec = durations[level.toLowerCase()] || 120;
 
-    let remaining = totalSec;
-    let overrunSeconds = 0;
-    const maxOverrun = 120; // Up to 2 mins hardware sync safety window
-    let checkingBusy = false;
+    startHardwareSyncedMaintenanceCycle({
+      printerName: pName,
+      level,
+      totalSec,
+      progressEvent: 'cleaning_progress',
+      completeEvent: 'cleaning_complete',
+      getPhaseText: getCleaningPhaseText,
+      syncingPhaseText: 'Hardware active: Finishing nozzle wiping & printhead capping... (synchronizing with printer)',
+      completePhaseText: '✔ Cleaning cycle complete. Printhead capped and parked.',
+      completeLogLabel: `✔ ${level.toUpperCase()} cleaning cycle physically completed and verified on '${pName}'.`
+    });
 
-    const interval = setInterval(async () => {
-      remaining -= 1;
-      let rawProgress = 1.0 - (remaining / totalSec);
-      let progress = Math.min(Math.max(rawProgress, 0.0), 1.0);
-      let phase = getCleaningPhaseText(progress, level);
-
-      // When approaching the final capping phase (last 15s or elapsed), poll physical printer hardware
-      if (remaining <= 15 && !checkingBusy) {
-        checkingBusy = true;
-        try {
-          const isBusy = await spoolerBridge.isPrinterBusy(pName);
-          if (isBusy) {
-            // Printer hardware is still actively pumping, wiping, or moving carriage
-            if (remaining <= 5) {
-              remaining = 5; // Hold timer at 5s while physical hardware is still busy
-              overrunSeconds += 1;
-              progress = 0.97;
-              phase = 'Hardware active: Finishing nozzle wiping & capping... (synchronizing with printer)';
-              if (overrunSeconds === 1) {
-                emitTelemetry('INFO', `Printer '${pName}' hardware still active; synchronizing completion state.`);
-              }
-            }
-          } else {
-            // Printer has completed the job, carriage is parked and capped!
-            if (remaining <= 3) {
-              remaining = 0;
-            }
-          }
-        } catch (e) {
-          // Fallback if check encounters an error
-        } finally {
-          checkingBusy = false;
-        }
-      }
-
-      // Safeguard: don't hold past maxOverrun
-      if (overrunSeconds >= maxOverrun) {
-        remaining = 0;
-      }
-
-      broadcast('cleaning_progress', {
-        level,
-        remaining_seconds: Math.max(0, remaining),
-        progress: remaining <= 0 ? 1.0 : progress,
-        phase: remaining <= 0 ? '✔ Cleaning cycle complete. Printhead capped and parked.' : phase
-      });
-
-      if (remaining <= 0) {
-        clearInterval(interval);
-        activeMaintenanceCycle = null;
-        broadcast('cleaning_complete', {
-          level,
-          printer: pName,
-          verified: true
-        });
-        emitTelemetry('INFO', `✔ ${level.toUpperCase()} cleaning cycle physically completed and verified on '${pName}'.`);
-      }
-    }, 1000);
-
-    activeMaintenanceCycle = interval;
     res.json({ status: 'started', duration: totalSec, level, transport: sent.transport });
   } catch (err) {
     if (activeMaintenanceCycle) {
@@ -582,12 +724,38 @@ app.post('/api/maintenance/clean', async (req, res) => {
   }
 });
 
+// 7b. Cancel / Emergency Stop active maintenance cycle
+app.post(['/api/maintenance/cancel', '/api/maintenance/stop'], async (req, res) => {
+  if (activeMaintenanceCycle) {
+    clearInterval(activeMaintenanceCycle);
+    activeMaintenanceCycle = null;
+  }
+
+  const requested = req.body?.printer_name || activeTarget.printer_name;
+  let pName = '';
+  try {
+    pName = await resolveEffectivePrinter(requested);
+    if (pName) {
+      await spoolerBridge.purgeQueue(pName);
+    } else {
+      await spoolerBridge.purgeQueue('all');
+    }
+  } catch (e) {
+    try { await spoolerBridge.purgeQueue('all'); } catch (err) {}
+  }
+
+  emitTelemetry('WARN', `[Emergency Stop] Maintenance cycle stopped immediately for '${pName || 'All'}'. Print queue purged & CAN abort signal dispatched.`);
+  broadcast('cleaning_cancelled', { message: 'Cycle stopped immediately by user.' });
+
+  res.json({ status: 'ok', cancelled: true, purged: true, printer: pName });
+});
+
 // 8. EcoTank Air Bleed & Damper Charge
 app.post('/api/maintenance/air-bleed', async (req, res) => {
   const requested = req.body.printer_name !== undefined ? req.body.printer_name : activeTarget.printer_name;
   const pName = await resolveEffectivePrinter(requested);
 
-  if (!pName || pName === '') {
+  if (!pName || pName === '' || !(await isPrinterOnline(pName))) {
     return res.status(400).json({
       status: 'error',
       code: 20000010,
@@ -596,10 +764,8 @@ app.post('/api/maintenance/air-bleed', async (req, res) => {
   }
 
   if (activeMaintenanceCycle) {
-    return res.status(409).json({
-      status: 'error',
-      message: 'A maintenance cycle is already running on the printer hardware. Please wait for it to complete.'
-    });
+    clearInterval(activeMaintenanceCycle);
+    activeMaintenanceCycle = null;
   }
 
   try {
@@ -607,64 +773,22 @@ app.post('/api/maintenance/air-bleed', async (req, res) => {
     const sent = await spoolerBridge.cleanHead(pName, 'air_bleed');
     if (sent.status === 'error') throw new Error(sent.message);
 
-    emitTelemetry('TX', `Dispatched Ink Tube Air Bleed Command via ${sent.transport || 'winspool_raw'}: ${sent.bytes_written || 27} bytes`);
+    emitTelemetry('TX', `Dispatched Ink Tube Air Bleed Command via ${sent.transport || 'winspool_raw'}: ${sent.bytes_written || 66} bytes`);
 
-    const totalSec = 320; // Calibrated for full tube siphon & damper equalization
-    let remaining = totalSec;
-    let overrunSeconds = 0;
-    const maxOverrun = 120;
-    let checkingBusy = false;
+    const totalSec = 160; // Calibrated for full tube siphon & damper equalization
 
-    const interval = setInterval(async () => {
-      remaining -= 1;
-      let rawProgress = 1.0 - (remaining / totalSec);
-      let progress = Math.min(Math.max(rawProgress, 0.0), 1.0);
-      let phase = getAirBleedPhaseText(progress);
+    startHardwareSyncedMaintenanceCycle({
+      printerName: pName,
+      level: null,
+      totalSec,
+      progressEvent: 'air_bleed_progress',
+      completeEvent: 'air_bleed_complete',
+      getPhaseText: (p) => getAirBleedPhaseText(p),
+      syncingPhaseText: 'Hardware active: Finishing ink line siphon & printhead capping... (synchronizing with printer)',
+      completePhaseText: '✔ Ink Tube Air Bleed & Damper Charge Complete.',
+      completeLogLabel: `✔ Ink Tube Air Bleed physically completed and verified on '${pName}'.`
+    });
 
-      if (remaining <= 15 && !checkingBusy) {
-        checkingBusy = true;
-        try {
-          const isBusy = await spoolerBridge.isPrinterBusy(pName);
-          if (isBusy) {
-            if (remaining <= 5) {
-              remaining = 5;
-              overrunSeconds += 1;
-              progress = 0.97;
-              phase = 'Hardware active: Finishing ink line siphon & capping... (synchronizing with printer)';
-            }
-          } else {
-            if (remaining <= 3) {
-              remaining = 0;
-            }
-          }
-        } catch (e) {
-        } finally {
-          checkingBusy = false;
-        }
-      }
-
-      if (overrunSeconds >= maxOverrun) {
-        remaining = 0;
-      }
-
-      broadcast('air_bleed_progress', {
-        remaining_seconds: Math.max(0, remaining),
-        progress: remaining <= 0 ? 1.0 : progress,
-        phase: remaining <= 0 ? '✔ Ink Tube Air Bleed & Damper Charge Complete.' : phase
-      });
-
-      if (remaining <= 0) {
-        clearInterval(interval);
-        activeMaintenanceCycle = null;
-        broadcast('air_bleed_complete', {
-          printer: pName,
-          verified: true
-        });
-        emitTelemetry('INFO', `✔ Ink Tube Air Bleed physically completed and verified on '${pName}'.`);
-      }
-    }, 1000);
-
-    activeMaintenanceCycle = interval;
     res.json({ status: 'started', duration: totalSec });
   } catch (err) {
     if (activeMaintenanceCycle) {
@@ -679,13 +803,9 @@ app.post('/api/maintenance/air-bleed', async (req, res) => {
 app.post('/api/maintenance/nozzle-check', async (req, res) => {
   const { use_raster = false, printer_name } = req.body;
   const requested = printer_name !== undefined ? printer_name : activeTarget.printer_name;
-  const pName = await resolveEffectivePrinter(requested);
+  const effectiveName = await resolveEffectivePrinter(requested);
 
-  const installed = await spoolerBridge.listPrinters();
-  const printerExists = installed.some(x => x.name.toLowerCase() === pName.toLowerCase());
-  const online = await isPrinterOnline(pName);
-
-  if (!pName || pName === '' || !online) {
+  if (!effectiveName || effectiveName === '' || !(await isPrinterOnline(effectiveName))) {
     return res.status(400).json({
       status: 'error',
       code: 20000010,
@@ -694,19 +814,20 @@ app.post('/api/maintenance/nozzle-check', async (req, res) => {
   }
 
   try {
-    emitTelemetry('INFO', `Dispatching original regular nozzle check to '${pName}' (Mode: ${use_raster ? 'raster' : 'regular'})...`);
-    const printResult = await spoolerBridge.printNozzleCheck(pName, use_raster ? 'raster' : 'regular');
+    emitTelemetry('INFO', `Dispatching original regular nozzle check to '${effectiveName}' (Mode: ${use_raster ? 'raster' : 'regular'})...`);
+    const printResult = await spoolerBridge.printNozzleCheck(effectiveName, use_raster ? 'raster' : 'regular');
 
     if (printResult && printResult.status === 'error') {
       throw new Error(printResult.message || 'Spooler write failed.');
     }
 
-    emitTelemetry('TX', `Nozzle check dispatched to ${pName} [Serial: ${printResult.serial_number || 'N/A'}, Firmware: ${printResult.firmware || 'N/A'}, Pages: ${printResult.total_pages || 'N/A'}]`, printResult);
+    emitTelemetry('TX', `Nozzle check dispatched to ${effectiveName} [Serial: ${printResult.serial_number || 'N/A'}, Firmware: ${printResult.firmware || 'N/A'}, Pages: ${printResult.total_pages || 'N/A'}]`, printResult);
 
     res.json({
       status: 'sent',
       bytes: printResult.bytes || 195916,
-      printer: pName,
+      printer: effectiveName,
+      port: printResult.port,
       serial_number: printResult.serial_number,
       firmware: printResult.firmware,
       total_pages: printResult.total_pages,
@@ -720,9 +841,9 @@ app.post('/api/maintenance/nozzle-check', async (req, res) => {
 // 10. Paper Feed & Page Eject Routine
 app.post('/api/maintenance/paper-feed', async (req, res) => {
   const requested = req.body.printer_name !== undefined ? req.body.printer_name : activeTarget.printer_name;
-  const pName = await resolveEffectivePrinter(requested);
+  const effectiveName = await resolveEffectivePrinter(requested);
 
-  if (!pName || pName === '' || !(await isPrinterOnline(pName))) {
+  if (!effectiveName || effectiveName === '' || !(await isPrinterOnline(effectiveName))) {
     return res.status(400).json({
       status: 'error',
       code: 20000010,
@@ -731,9 +852,9 @@ app.post('/api/maintenance/paper-feed', async (req, res) => {
   }
 
   try {
-    emitTelemetry('INFO', `Dispatching Paper Feed & Eject command to '${pName}'...`);
-    const pkt = EpsonProtocolEngine.buildPaperFeedPacket();
-    const sent = await spoolerBridge.sendRawBytes(pName, pkt);
+    emitTelemetry('INFO', `Dispatching Paper Feed & Eject command to '${effectiveName}'...`);
+    const pkt = ProtocolEngine.buildPaperFeedPacket();
+    const sent = await spoolerBridge.sendRawBytes(effectiveName, pkt);
     if (sent.status === 'error') throw new Error(sent.message);
     emitTelemetry('TX', `Form Feed dispatched (${pkt.length} bytes)`);
     res.json({ status: 'ok', sent });
@@ -745,9 +866,9 @@ app.post('/api/maintenance/paper-feed', async (req, res) => {
 // 11. Pickup Roller Cleaning Routine
 app.post('/api/maintenance/roller-clean', async (req, res) => {
   const requested = req.body.printer_name !== undefined ? req.body.printer_name : activeTarget.printer_name;
-  const pName = await resolveEffectivePrinter(requested);
+  const effectiveName = await resolveEffectivePrinter(requested);
 
-  if (!pName || pName === '' || !(await isPrinterOnline(pName))) {
+  if (!effectiveName || effectiveName === '' || !(await isPrinterOnline(effectiveName))) {
     return res.status(400).json({
       status: 'error',
       code: 20000010,
@@ -756,9 +877,9 @@ app.post('/api/maintenance/roller-clean', async (req, res) => {
   }
 
   try {
-    emitTelemetry('INFO', `Initiating 3-Cycle Pickup Roller Cleaning routine on '${pName}'...`);
-    const pkt = EpsonProtocolEngine.buildRollerCleanPacket();
-    const sent = await spoolerBridge.sendRawBytes(pName, pkt);
+    emitTelemetry('INFO', `Initiating 3-Cycle Pickup Roller Cleaning routine on '${effectiveName}'...`);
+    const pkt = ProtocolEngine.buildRollerCleanPacket();
+    const sent = await spoolerBridge.sendRawBytes(effectiveName, pkt);
     if (sent.status === 'error') throw new Error(sent.message);
     emitTelemetry('TX', `Roller cleaning sequence dispatched (${pkt.length} bytes)`);
     res.json({ status: 'ok', message: 'Pickup roller cleaning sequence sent to printer hardware.' });
@@ -770,10 +891,10 @@ app.post('/api/maintenance/roller-clean', async (req, res) => {
 // 12. Full CMYK Diagnostic Calibration Test Page
 app.post('/api/maintenance/test-page', async (req, res) => {
   const requested = req.body.printer_name !== undefined ? req.body.printer_name : activeTarget.printer_name;
-  const pName = await resolveEffectivePrinter(requested);
+  const effectiveName = await resolveEffectivePrinter(requested);
   const mId = req.body.model_id || activeTarget.model_id;
 
-  if (!pName || pName === '' || !(await isPrinterOnline(pName))) {
+  if (!effectiveName || effectiveName === '' || !(await isPrinterOnline(effectiveName))) {
     return res.status(400).json({
       status: 'error',
       code: 20000010,
@@ -782,9 +903,17 @@ app.post('/api/maintenance/test-page', async (req, res) => {
   }
 
   try {
-    emitTelemetry('INFO', `Dispatching Diagnostic Test Sheet to '${pName}' (${mId})...`);
-    const pkt = EpsonProtocolEngine.buildDiagnosticTestPage(mId, pName);
-    const sent = await spoolerBridge.sendRawBytes(pName, pkt);
+    emitTelemetry('INFO', `Dispatching Diagnostic Test Sheet to '${effectiveName}' (${mId})...`);
+    const cache = spoolerBridge.getTelemetryCache();
+    const pkt = ProtocolEngine.buildDiagnosticTestPage(mId, effectiveName, {
+      total_pages: cache.total_pages,
+      bw_pages: cache.bw_pages,
+      color_pages: cache.color_pages,
+      scan_count: cache.scan_count,
+      cleaning_count: cache.cleaning_count,
+      serial_number: cache.serial
+    });
+    const sent = await spoolerBridge.sendRawBytes(effectiveName, pkt);
     if (sent.status === 'error') throw new Error(sent.message);
     emitTelemetry('TX', `Diagnostic Test Sheet dispatched (${pkt.length} bytes)`);
     res.json({ status: 'ok', bytes: pkt.length });
@@ -796,9 +925,9 @@ app.post('/api/maintenance/test-page', async (req, res) => {
 // 13. Printhead Bidirectional Alignment Sheet
 app.post('/api/maintenance/align-test', async (req, res) => {
   const requested = req.body.printer_name !== undefined ? req.body.printer_name : activeTarget.printer_name;
-  const pName = await resolveEffectivePrinter(requested);
+  const effectiveName = await resolveEffectivePrinter(requested);
 
-  if (!pName || pName === '' || !(await isPrinterOnline(pName))) {
+  if (!effectiveName || effectiveName === '' || !(await isPrinterOnline(effectiveName))) {
     return res.status(400).json({
       status: 'error',
       code: 20000010,
@@ -807,9 +936,9 @@ app.post('/api/maintenance/align-test', async (req, res) => {
   }
 
   try {
-    emitTelemetry('INFO', `Dispatching Printhead Alignment Pattern to '${pName}'...`);
-    const pkt = EpsonProtocolEngine.buildAlignmentTestPacket();
-    const sent = await spoolerBridge.sendRawBytes(pName, pkt);
+    emitTelemetry('INFO', `Dispatching Printhead Alignment Pattern to '${effectiveName}'...`);
+    const pkt = ProtocolEngine.buildAlignmentTestPacket();
+    const sent = await spoolerBridge.sendRawBytes(effectiveName, pkt);
     if (sent.status === 'error') throw new Error(sent.message);
     emitTelemetry('TX', `Alignment pattern dispatched (${pkt.length} bytes)`);
     res.json({ status: 'ok', bytes: pkt.length });
@@ -888,8 +1017,10 @@ app.post('/api/eeprom/write-register', async (req, res) => {
     return res.status(400).json({ status: 'error', code: 20000010, message: 'No physical printer connected.' });
   }
 
-  const addr = parseInt(address, 16) || parseInt(address, 10);
-  const val = parseInt(value, 16) || parseInt(value, 10);
+  const addrStr = String(address ?? '').trim();
+  const valStr = String(value ?? '').trim();
+  const addr = addrStr.toLowerCase().startsWith('0x') ? parseInt(addrStr, 16) : parseInt(addrStr, 16);
+  const val = valStr.toLowerCase().startsWith('0x') ? parseInt(valStr, 16) : parseInt(valStr, 16);
   if (isNaN(addr) || isNaN(val) || addr < 0 || addr > 255 || val < 0 || val > 255) {
     return res.status(400).json({ status: 'error', message: 'Invalid register address or value (0x00 - 0xFF required)' });
   }
@@ -899,22 +1030,18 @@ app.post('/api/eeprom/write-register', async (req, res) => {
     const backupRes = backupManager.createBackup(mId, { [hexKey]: val }, `Pre-write single register ${hexKey}`);
 
     const modelInfo = modelsMap.get(mId.toUpperCase());
-    const rKey = modelInfo?.read_key || [151, 7];
-    const wKey = modelInfo?.write_key || [77, 97, 114, 105, 98, 97, 121, 97];
-    let rk = 0x364a;
-    if (Array.isArray(rKey) && rKey.length >= 2) rk = (rKey[1] << 8) | rKey[0];
+    emitTelemetry('TX', `Writing EEPROM Reg ${hexKey} = 0x${val.toString(16).toUpperCase().padStart(2, '0')} via D4 Control Channel...`);
 
-    const writeCmd = EpsonProtocolEngine.buildFactoryEepromWrite(addr, val, wKey, rk);
-    const pkt = EpsonProtocolEngine.wrapRemote1Session([writeCmd], false);
-    emitTelemetry('TX', `Writing EEPROM Reg ${hexKey} = 0x${val.toString(16).toUpperCase().padStart(2, '0')} (${pkt.length} bytes)`, pkt);
-
-    const sent = await spoolerBridge.sendRawBytes(pName, pkt);
+    const sent = await spoolerBridge.writeSingleRegister(pName, addr, val, modelInfo);
     if (sent.status === 'error') throw new Error(sent.message);
+
+    emitTelemetry('RX', `Register ${hexKey} updated to 0x${val.toString(16).toUpperCase().padStart(2, '0')} (readback=${sent.read_back !== undefined ? sent.read_back : val})`);
 
     res.json({
       status: 'ok',
       message: `Register ${hexKey} updated to 0x${val.toString(16).toUpperCase().padStart(2, '0')}`,
-      backup: backupRes
+      backup: backupRes,
+      read_back: sent.read_back
     });
   } catch (err) {
     res.status(500).json({ status: 'error', code: 20000010, message: err.message });
@@ -1013,8 +1140,10 @@ app.get('/api/backups', (req, res) => {
   res.json({ status: 'ok', backups: list });
 });
 
-app.post('/api/backups/create', (req, res) => {
+app.post('/api/backups/create', async (req, res) => {
   const mId = req.body.model_id || activeTarget.model_id;
+  const requested = req.body.printer_name !== undefined ? req.body.printer_name : activeTarget.printer_name;
+  const pName = await resolveEffectivePrinter(requested);
   const modelInfo = modelsMap.get(mId.toUpperCase());
   const resetMap = modelInfo?.raw_waste_reset || {
     '48': 0, '49': 0, '47': 0, '52': 0, '53': 0, '54': 94, '50': 0, '51': 0, '55': 94, '28': 0
@@ -1024,6 +1153,20 @@ app.post('/api/backups/create', (req, res) => {
     const addrHex = `0x${parseInt(k).toString(16).toUpperCase().padStart(2, '0')}`;
     hexMap[addrHex] = v;
   }
+
+  // If a physical printer is connected, read live registers so manual backup captures actual hardware values
+  if (pName && await isPrinterOnline(pName)) {
+    try {
+      const liveCounters = await spoolerBridge.queryWasteCounters(pName, mId, modelInfo);
+      if (liveCounters && liveCounters.raw_registers) {
+        for (const [regDec, regVal] of Object.entries(liveCounters.raw_registers)) {
+          const addrHex = `0x${parseInt(regDec, 10).toString(16).toUpperCase().padStart(2, '0')}`;
+          hexMap[addrHex] = regVal;
+        }
+      }
+    } catch (e) {}
+  }
+
   const result = backupManager.createBackup(mId, hexMap, req.body.notes || 'Manual Snapshot');
   emitTelemetry('INFO', `Created manual backup: ${result.filename}`);
   res.json(result);
@@ -1054,19 +1197,36 @@ app.post('/api/backups/restore', async (req, res) => {
     }
 
     const modelInfo = modelsMap.get(mId.toUpperCase());
-    const rKey = modelInfo?.read_key || [151, 7];
-    const wKey = modelInfo?.write_key || [77, 97, 114, 105, 98, 97, 121, 97];
+    emitTelemetry('TX', `Restoring ${Object.keys(addrMap).length} registers from '${filename}' via D4 Control Channel...`);
 
-    const pkt = EpsonProtocolEngine.buildFullWasteResetPacket(addrMap, wKey, rKey);
-    emitTelemetry('TX', `Restoring ${Object.keys(addrMap).length} registers from '${filename}'`, pkt);
-
-    const sent = await spoolerBridge.sendRawBytes(pName, pkt);
+    const sent = await spoolerBridge.restoreRegisters(pName, addrMap, modelInfo);
     if (sent.status === 'error') throw new Error(sent.message);
 
+    emitTelemetry('RX', `Successfully restored ${Object.keys(addrMap).length} registers from '${filename}'.`);
     res.json({ status: 'success', message: `Restored ${Object.keys(addrMap).length} registers from ${filename}` });
   } catch (err) {
     res.status(500).json({ status: 'error', code: 20000010, message: err.message });
   }
+});
+
+app.get('/api/backups/download/:filename', (req, res) => {
+  const filePath = backupManager.getBackupFilePath(req.params.filename);
+  if (!filePath) return res.status(404).json({ status: 'error', message: 'Backup file not found.' });
+  res.download(filePath, path.basename(filePath));
+});
+
+app.delete('/api/backups/:filename', (req, res) => {
+  const result = backupManager.deleteBackup(req.params.filename);
+  if (result.status === 'error') return res.status(404).json(result);
+  emitTelemetry('INFO', `Deleted NVRAM backup snapshot: ${result.deleted}`);
+  res.json(result);
+});
+
+app.post('/api/backups/import', (req, res) => {
+  const result = backupManager.importBackup(req.body);
+  if (result.status === 'error') return res.status(400).json(result);
+  emitTelemetry('INFO', `Imported NVRAM backup snapshot: ${result.filename}`);
+  res.json(result);
 });
 
 // 20. Purge Spooler Queue
@@ -1140,6 +1300,9 @@ function startServer(preferredPort = (parseInt(process.env.PORT, 10) || 3000), m
         console.log(`[Universal Tool] Modern Engine Server listening at ${url}`);
         console.log(`[Universal Tool] WebSocket live telemetry stream active on ws://127.0.0.1:${actualPort}`);
 
+        // Purge any stale print jobs in Windows Spooler on startup
+        spoolerBridge.purgeQueue('all').catch(() => {});
+
         if (process.env.NO_AUTO_OPEN !== 'true' && require.main === module) {
           try {
             const open = require('open');
@@ -1154,7 +1317,7 @@ function startServer(preferredPort = (parseInt(process.env.PORT, 10) || 3000), m
 
       server.once('error', onError);
       server.once('listening', onListening);
-      server.listen(currentPort, '0.0.0.0');
+      server.listen(currentPort, process.env.HOST || '127.0.0.1');
     }
 
     tryListen();

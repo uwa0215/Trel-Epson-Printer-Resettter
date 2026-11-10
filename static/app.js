@@ -1,5 +1,5 @@
 /**
- * Trel- Epson Universal Tool - Modern Desktop Interface Logic
+ * Trel- Universal Tool - Modern Desktop Interface Logic
  * Connects directly to Python backend via pywebview window.pywebview.api
  * With full browser emulation fallback.
  */
@@ -7,7 +7,7 @@
 // Application State
 let isPyWebviewReady = false;
 let currentTarget = {
-  printer_name: "EPSON L3250 Series",
+  printer_name: "EcoTank Series (Ready)",
   model_id: "L3250",
   port: "USB001",
   is_simulator: false
@@ -80,7 +80,7 @@ async function onPyWebviewReady() {
 }
 
 function initFallbackMode() {
-  appendTelemetry("INFO", "Running in browser preview mode. Virtual Epson simulator active.");
+  appendTelemetry("INFO", "Running in browser preview mode. Virtual printer simulator active.");
   // Mock model database
   allModels = [
     { model_id: "L3250", family: "L", read_key: [151, 7], write_key: [77, 97, 114, 105, 98, 97, 121, 97], desc: "EcoTank L3250 All-in-One" },
@@ -96,7 +96,7 @@ function initFallbackMode() {
   renderModelsGrid(allModels);
   updateRadialGauge(97.5, 6180, 6340);
   document.getElementById("usbStatusText").innerText = "Online (Simulator Mode)";
-  document.getElementById("usbDeviceName").innerText = "EPSON L3250 Series";
+  document.getElementById("usbDeviceName").innerText = "EcoTank Series (Ready)";
 }
 
 function handleSystemOverview(overview) {
@@ -509,7 +509,7 @@ function renderModelsGrid(models) {
 function selectModel(modelId) {
   currentTarget.model_id = modelId;
   document.getElementById("hdrTargetModel").innerText = modelId;
-  document.getElementById("certModel").innerText = `Epson ${modelId} Series`;
+  document.getElementById("certModel").innerText = `${modelId} Series`;
   if (isPyWebviewReady) {
     window.pywebview.api.set_active_target(currentTarget.printer_name, modelId, currentTarget.port, currentTarget.is_simulator);
   }

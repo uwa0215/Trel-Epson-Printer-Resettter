@@ -10,15 +10,26 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Printing;
 using Microsoft.Win32;
 
-namespace EpsonSpoolerBridge
+namespace UniversalSpoolerBridge
 {
     class Program
     {
         // -------------------------------------------------------------
         // WinSpool P/Invoke Imports
         // -------------------------------------------------------------
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        public struct PRINTER_DEFAULTS
+        {
+            public IntPtr pDatatype;
+            public IntPtr pDevMode;
+            public uint DesiredAccess;
+        }
+
         [DllImport("winspool.drv", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern bool OpenPrinter(string pPrinterName, out IntPtr phPrinter, IntPtr pDefault);
+
+        [DllImport("winspool.drv", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern bool OpenPrinter(string pPrinterName, out IntPtr phPrinter, ref PRINTER_DEFAULTS pDefault);
 
         [DllImport("winspool.drv", SetLastError = true)]
         public static extern bool ClosePrinter(IntPtr hPrinter);
@@ -115,6 +126,9 @@ namespace EpsonSpoolerBridge
 
         [DllImport("apdadrv.dll", EntryPoint = "?ADD4SendAndReceiveCtrlCh@CApdadrv@@QAEKPAEK0KAAK@Z", CallingConvention = CallingConvention.ThisCall)]
         public static extern uint ADD4SendAndReceiveCtrlCh(IntPtr thisPtr, byte[] txBuf, uint txLen, byte[] rxBuf, uint rxMax, ref uint rxLen);
+
+        [DllImport("apdadrv.dll", EntryPoint = "?ADD4SendDataToDataCh@CApdadrv@@QAEKPAEKAAK@Z", CallingConvention = CallingConvention.ThisCall)]
+        public static extern uint ADD4SendDataToDataCh(IntPtr thisPtr, byte[] txBuf, uint txLen, ref uint writtenLen);
 
         [StructLayout(LayoutKind.Sequential)]
         public struct SP_DEVINFO_DATA
@@ -239,12 +253,30 @@ namespace EpsonSpoolerBridge
                     case "read-counters":
                         string readTarget = args.Length > 1 ? args[1] : "";
                         string readModel = args.Length > 2 ? args[2] : "L3250";
-                        ReadCounters(readTarget, readModel);
+                        int rMainMax = args.Length > 3 ? int.Parse(args[3]) : 6346;
+                        int rPlatenMax = args.Length > 4 ? int.Parse(args[4]) : 3416;
+                        int rInkMax = args.Length > 5 ? int.Parse(args[5]) : 1300;
+                        ReadCounters(readTarget, readModel, rMainMax, rPlatenMax, rInkMax);
                         break;
                     case "reset-counters":
                         string resetTarget = args.Length > 1 ? args[1] : "";
                         string resetWhich = args.Length > 2 ? args[2] : "all";
-                        ResetCounters(resetTarget, resetWhich);
+                        int wMainMax = args.Length > 3 ? int.Parse(args[3]) : 6346;
+                        int wPlatenMax = args.Length > 4 ? int.Parse(args[4]) : 3416;
+                        int wInkMax = args.Length > 5 ? int.Parse(args[5]) : 1300;
+                        ResetCounters(resetTarget, resetWhich, wMainMax, wPlatenMax, wInkMax);
+                        break;
+                    case "read-eeprom":
+                        string eepTarget = args.Length > 1 ? args[1] : "";
+                        ReadEeprom(eepTarget);
+                        break;
+                    case "write-register":
+                        if (args.Length < 4) { OutputError(20000001, "Usage: write-register <printer> <addr> <val>"); return; }
+                        WriteRegister(args[1], args[2], args[3]);
+                        break;
+                    case "restore-registers":
+                        if (args.Length < 3) { OutputError(20000001, "Usage: restore-registers <printer> <addr=val,...>"); return; }
+                        RestoreRegisters(args[1], args[2]);
                         break;
                     case "print-nozzle-check":
                         string nozzleTarget = args.Length > 1 ? args[1] : "";
@@ -273,7 +305,7 @@ namespace EpsonSpoolerBridge
 
         static void PrintHelp()
         {
-            Console.WriteLine("{\"status\":\"ok\",\"service\":\"EpsonSpoolerBridge\",\"version\":\"3.5.0\"}");
+            Console.WriteLine("{\"status\":\"ok\",\"service\":\"UniversalSpoolerBridge\",\"version\":\"3.5.0\"}");
         }
 
         static void OutputError(int code, string msg)
@@ -331,7 +363,7 @@ namespace EpsonSpoolerBridge
         }
 
         /// <summary>
-        /// Detects physically present USB Epson devices using SetupAPI GUID_DEVINTERFACE_USBPRINT
+        /// Detects physically present USB devices using SetupAPI GUID_DEVINTERFACE_USBPRINT
         /// and links each device to its exact Windows Spooler USB port (e.g. USB048).
         /// Verifies actual presence by testing device handle access to prevent phantom/unplugged false positives.
         /// </summary>
@@ -395,16 +427,16 @@ namespace EpsonSpoolerBridge
 
                                             seen.Add(path);
                                             string port = GetPortForUsbDevicePath(path);
-                                            string friendly = "EPSON Printer";
+                                            string friendly = "USB Printer";
                                             Match mPid = Regex.Match(path, @"pid_([0-9a-f]{4})", RegexOptions.IgnoreCase);
                                             if (mPid.Success)
                                             {
                                                 string pid = mPid.Groups[1].Value.ToUpperInvariant();
-                                                if (pid == "118A" || pid == "1188" || pid == "1185") friendly = "EPSON L3250 Series";
-                                                else if (pid == "1143" || pid == "1142") friendly = "EPSON L3150 Series";
-                                                else if (pid == "114D") friendly = "EPSON L5190 Series";
-                                                else if (pid == "116F") friendly = "EPSON L15150 Series";
-                                                else friendly = "EPSON PID " + pid;
+                                                if (pid == "118A" || pid == "1188" || pid == "1185") friendly = "L3250 Series";
+                                                else if (pid == "1143" || pid == "1142") friendly = "L3150 Series";
+                                                else if (pid == "114D") friendly = "L5190 Series";
+                                                else if (pid == "116F") friendly = "L15150 Series";
+                                                else friendly = "USB PID " + pid;
                                             }
 
                                             Dictionary<string, string> item = new Dictionary<string, string>();
@@ -434,7 +466,7 @@ namespace EpsonSpoolerBridge
             return present;
         }
 
-        static string GetFirstPresentEpsonUsbPath()
+        static string GetFirstPresentUsbPath()
         {
             var devs = GetPhysicallyPresentUsbPrinters();
             foreach (var d in devs)
@@ -453,7 +485,7 @@ namespace EpsonSpoolerBridge
                     printerName.Equals("Auto selection", StringComparison.OrdinalIgnoreCase) ||
                     printerName.Equals("Auto", StringComparison.OrdinalIgnoreCase))
                 {
-                    return GetFirstPresentEpsonUsbPath();
+                    return GetFirstPresentUsbPath();
                 }
 
                 uint cbNeeded = 0;
@@ -500,7 +532,7 @@ namespace EpsonSpoolerBridge
             }
             catch { }
 
-            return GetFirstPresentEpsonUsbPath();
+            return GetFirstPresentUsbPath();
         }
 
         static void DetectUsb()
@@ -552,7 +584,7 @@ namespace EpsonSpoolerBridge
                 return printerName;
             }
 
-            // Look up installed printers to find first connected or active Epson printer
+            // Look up installed printers to find first connected or active printer
             uint cbNeeded = 0;
             uint cReturned = 0;
             int flags = PRINTER_ENUM_LOCAL | PRINTER_ENUM_CONNECTIONS;
@@ -573,9 +605,10 @@ namespace EpsonSpoolerBridge
                     }
 
                     int structSize = Marshal.SizeOf(typeof(PRINTER_INFO_2));
-                    string bestOnlineEpson = null;
-                    string firstOnlineEpson = null;
-                    string firstAnyEpson = null;
+                    string bestOnlinePrinter = null;
+                    string firstOnlinePrinter = null;
+                    string firstAnyPrinter = null;
+                    string fallbackFaxPrinter = null;
 
                     for (int i = 0; i < cReturned; i++)
                     {
@@ -584,24 +617,37 @@ namespace EpsonSpoolerBridge
                         string name = info.pPrinterName ?? "";
                         string port = info.pPortName ?? "";
                         bool isOffline = (info.Attributes & PRINTER_ATTRIBUTE_WORK_OFFLINE) != 0;
+                        bool isFax = name.IndexOf("(FAX)", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                     port.IndexOf("SHRFAX", StringComparison.OrdinalIgnoreCase) >= 0;
 
-                        if (name.IndexOf("epson", StringComparison.OrdinalIgnoreCase) >= 0)
+                        if (name.IndexOf("epson", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            name.IndexOf("L15150", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            name.IndexOf("L3250", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            name.IndexOf("L3150", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            name.IndexOf("L120", StringComparison.OrdinalIgnoreCase) >= 0)
                         {
+                            if (isFax)
+                            {
+                                if (fallbackFaxPrinter == null) fallbackFaxPrinter = name;
+                                continue;
+                            }
                             if (activeUsbPorts.Contains(port))
                             {
-                                bestOnlineEpson = name; // Exact match on physically active USB port!
+                                bestOnlinePrinter = name; // Exact match on physically active USB port!
                                 break;
                             }
-                            if (firstAnyEpson == null) firstAnyEpson = name;
+                            if (firstAnyPrinter == null) firstAnyPrinter = name;
                             if (!isOffline)
                             {
-                                if (firstOnlineEpson == null) firstOnlineEpson = name;
+                                if (firstOnlinePrinter == null) firstOnlinePrinter = name;
                             }
                         }
                     }
-                    if (bestOnlineEpson != null) return bestOnlineEpson;
-                    if (firstOnlineEpson != null) return firstOnlineEpson;
-                    if (firstAnyEpson != null) return firstAnyEpson;
+                    if (bestOnlinePrinter != null) return bestOnlinePrinter;
+                    if (firstOnlinePrinter != null) return firstOnlinePrinter;
+                    if (firstAnyPrinter != null) return firstAnyPrinter;
+                    if (fallbackFaxPrinter != null) return fallbackFaxPrinter;
+                    return "";
                 }
             }
             finally
@@ -656,7 +702,8 @@ namespace EpsonSpoolerBridge
                     string nameLower = name.ToLowerInvariant();
                     string portLower = port.ToLowerInvariant();
 
-                    bool isEpson = nameLower.Contains("epson") || nameLower.Contains("l3") || nameLower.Contains("l5") || nameLower.Contains("et-") || nameLower.Contains("workforce") || driver.ToLowerInvariant().Contains("epson");
+                    bool isEpson = nameLower.Contains("epson") || nameLower.Contains("l3") || nameLower.Contains("l5") || nameLower.Contains("l1") || nameLower.Contains("et-") || nameLower.Contains("workforce") || driver.ToLowerInvariant().Contains("epson");
+                    bool isFax = nameLower.Contains("(fax)") || portLower.Contains("shrfax") || driver.ToLowerInvariant().Contains("(fax)");
                     bool isUsb = portLower.Contains("usb") || portLower.Contains("esdprt") || portLower.Contains("usbprint");
 
                     bool isOfflineAttr = (info.Attributes & PRINTER_ATTRIBUTE_WORK_OFFLINE) != 0;
@@ -666,10 +713,10 @@ namespace EpsonSpoolerBridge
 
                     if (isUsb)
                     {
-                        // Match physical USB port strictly (e.g. USB048)
-                        isPhysicallyConnected = !string.IsNullOrEmpty(port) && (activeUsbPorts.Contains(port) || (activeUsbPorts.Count == 0 && !isOfflineAttr));
+                        // Match physical USB port strictly (ONLY if active device is plugged in)
+                        isPhysicallyConnected = !string.IsNullOrEmpty(port) && activeUsbPorts.Contains(port);
                     }
-                    else if (isEpson && isNetwork)
+                    else if (isEpson && isNetwork && !isFax)
                     {
                         isNetworkReachable = IsNetworkPrinterReachable(port);
                     }
@@ -680,7 +727,9 @@ namespace EpsonSpoolerBridge
                     sb.AppendFormat("\"name\":{0},", EscapeJson(name));
                     sb.AppendFormat("\"port\":{0},", EscapeJson(port));
                     sb.AppendFormat("\"driver\":{0},", EscapeJson(driver));
+                    sb.AppendFormat("\"is_supported\":{0},", isEpson ? "true" : "false");
                     sb.AppendFormat("\"is_epson\":{0},", isEpson ? "true" : "false");
+                    sb.AppendFormat("\"is_fax\":{0},", isFax ? "true" : "false");
                     sb.AppendFormat("\"is_usb\":{0},", isUsb ? "true" : "false");
                     sb.AppendFormat("\"is_network\":{0},", isNetwork ? "true" : "false");
                     sb.AppendFormat("\"is_physically_connected\":{0},", isPhysicallyConnected ? "true" : "false");
@@ -702,51 +751,118 @@ namespace EpsonSpoolerBridge
 
         static void PurgeQueue(string printerName)
         {
-            printerName = ResolveBestPrinterName(printerName);
-            IntPtr hPrinter;
-            if (!OpenPrinter(printerName, out hPrinter, IntPtr.Zero))
+            if (string.IsNullOrEmpty(printerName) || printerName.Equals("all", StringComparison.OrdinalIgnoreCase))
             {
-                OutputError(20000010, "Failed to OpenPrinter: " + printerName);
+                PurgeAllPrinterQueues();
                 return;
             }
 
-            int purgedCount = 0;
-            try
+            printerName = ResolveBestPrinterName(printerName);
+            if (string.IsNullOrEmpty(printerName) || printerName.Equals("Auto selection", StringComparison.OrdinalIgnoreCase))
             {
-                uint cbNeeded = 0;
-                uint cReturned = 0;
-                EnumJobs(hPrinter, 0, 50, 1, IntPtr.Zero, 0, out cbNeeded, out cReturned);
-                if (cbNeeded > 0)
+                PurgeAllPrinterQueues();
+                return;
+            }
+
+            PurgeSinglePrinter(printerName);
+            Console.WriteLine("{{\"status\":\"ok\",\"purged\":true,\"printer\":{0}}}", EscapeJson(printerName));
+        }
+
+        static void PurgeAllPrinterQueues()
+        {
+            uint cbNeeded = 0;
+            uint cReturned = 0;
+            int flags = PRINTER_ENUM_LOCAL | PRINTER_ENUM_CONNECTIONS;
+            EnumPrinters(flags, null, 2, IntPtr.Zero, 0, out cbNeeded, out cReturned);
+            int purged = 0;
+
+            if (cbNeeded > 0)
+            {
+                IntPtr pBuf = Marshal.AllocHGlobal((int)cbNeeded);
+                try
                 {
-                    IntPtr pJobs = Marshal.AllocHGlobal((int)cbNeeded);
-                    try
+                    if (EnumPrinters(flags, null, 2, pBuf, cbNeeded, out cbNeeded, out cReturned))
                     {
-                        if (EnumJobs(hPrinter, 0, 50, 1, pJobs, cbNeeded, out cbNeeded, out cReturned))
+                        int structSize = Marshal.SizeOf(typeof(PRINTER_INFO_2));
+                        for (int i = 0; i < cReturned; i++)
                         {
-                            int structSize = Marshal.SizeOf(typeof(JOB_INFO_1));
-                            for (int i = 0; i < cReturned; i++)
+                            IntPtr pCurrent = new IntPtr(pBuf.ToInt64() + (i * structSize));
+                            PRINTER_INFO_2 info = (PRINTER_INFO_2)Marshal.PtrToStructure(pCurrent, typeof(PRINTER_INFO_2));
+                            string name = info.pPrinterName ?? "";
+                            if (name.IndexOf("epson", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                name.IndexOf("l3", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                name.IndexOf("l1", StringComparison.OrdinalIgnoreCase) >= 0)
                             {
-                                IntPtr pCurrent = new IntPtr(pJobs.ToInt64() + (i * structSize));
-                                JOB_INFO_1 job = (JOB_INFO_1)Marshal.PtrToStructure(pCurrent, typeof(JOB_INFO_1));
-                                SetJob(hPrinter, job.JobId, 0, IntPtr.Zero, JOB_CONTROL_DELETE);
-                                purgedCount++;
+                                PurgeSinglePrinter(name, false);
+                                purged++;
                             }
                         }
                     }
-                    finally
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(pBuf);
+                }
+            }
+
+            Console.WriteLine("{{\"status\":\"ok\",\"purged\":true,\"all\":true,\"count\":{0}}}", purged);
+        }
+
+        static void PurgeSinglePrinter(string name, bool sendAbortSignal = true)
+        {
+            if (string.IsNullOrEmpty(name)) return;
+            IntPtr hPrinter;
+            PRINTER_DEFAULTS defaults = new PRINTER_DEFAULTS();
+            defaults.DesiredAccess = 0x000F000C; // PRINTER_ALL_ACCESS
+
+            bool ok = OpenPrinter(name, out hPrinter, ref defaults);
+            if (!ok)
+            {
+                defaults.DesiredAccess = 0x00000004 | 0x00000008; // ADMINISTER | USE
+                ok = OpenPrinter(name, out hPrinter, ref defaults);
+            }
+            if (!ok)
+            {
+                ok = OpenPrinter(name, out hPrinter, IntPtr.Zero);
+            }
+
+            if (ok && hPrinter != IntPtr.Zero)
+            {
+                try
+                {
+                    SetPrinter(hPrinter, 0, IntPtr.Zero, PRINTER_CONTROL_PURGE);
+                    SetPrinter(hPrinter, 0, IntPtr.Zero, PRINTER_CONTROL_RESUME);
+                    EnsurePrinterOnline(hPrinter);
+
+                    if (sendAbortSignal)
                     {
-                        Marshal.FreeHGlobal(pJobs);
+                        // Send ESC/P Cancel & Reset packet to abort ongoing mechanical activity
+                        DOCINFOA docInfo = new DOCINFOA();
+                        docInfo.pDocName = "Printer Abort Signal";
+                        docInfo.pDataType = "RAW";
+                        if (StartDocPrinter(hPrinter, 1, ref docInfo) > 0)
+                        {
+                            byte[] cancelSeq = new byte[] {
+                                0x18, 0x18, 0x18,                          // CAN (Cancel active print/clean job)
+                                0x1b, 0x40,                                // ESC @ (Reset/Init)
+                                0x1b, 0x28, 0x52, 0x08, 0x00, 0x00,       // REMOTE1
+                                0x52, 0x45, 0x4d, 0x4f, 0x54, 0x45, 0x31,
+                                0x4a, 0x45, 0x00, 0x00,                   // JE \0\0 (Job End - commit abort)
+                                0x1b, 0x00, 0x00, 0x00,                   // Exit REMOTE1
+                                0x1b, 0x40
+                            };
+                            int written;
+                            WritePrinter(hPrinter, cancelSeq, cancelSeq.Length, out written);
+                            EndDocPrinter(hPrinter);
+                        }
+                        SetPrinter(hPrinter, 0, IntPtr.Zero, PRINTER_CONTROL_PURGE);
                     }
                 }
-
-                SetPrinter(hPrinter, 0, IntPtr.Zero, PRINTER_CONTROL_PURGE);
-                SetPrinter(hPrinter, 0, IntPtr.Zero, PRINTER_CONTROL_RESUME);
-
-                Console.WriteLine("{{\"status\":\"ok\",\"purged\":{0}}}", purgedCount);
-            }
-            finally
-            {
-                ClosePrinter(hPrinter);
+                catch { }
+                finally
+                {
+                    ClosePrinter(hPrinter);
+                }
             }
         }
 
@@ -755,30 +871,7 @@ namespace EpsonSpoolerBridge
             printerName = ResolveBestPrinterName(printerName);
             byte[] bytes = HexToBytes(hexPayload);
 
-            // 1. Try Direct USB write if present
-            string directPath = GetUsbPathForPrinter(printerName);
-            if (!string.IsNullOrEmpty(directPath))
-            {
-                IntPtr hUsb = CreateFile(directPath, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, IntPtr.Zero, OPEN_EXISTING, 0, IntPtr.Zero);
-                if (hUsb != (IntPtr)(-1) && hUsb != IntPtr.Zero)
-                {
-                    try
-                    {
-                        int directWritten = 0;
-                        if (WriteFile(hUsb, bytes, bytes.Length, out directWritten, IntPtr.Zero) && directWritten == bytes.Length)
-                        {
-                            Console.WriteLine("{{\"status\":\"ok\",\"transport\":\"direct_usb\",\"bytes_written\":{0}}}", directWritten);
-                            return;
-                        }
-                    }
-                    finally
-                    {
-                        CloseHandle(hUsb);
-                    }
-                }
-            }
-
-            // 2. Try Direct TCP port 9100 if printerName has an IP or port is an IP
+            // 1. Try Direct TCP port 9100 if printerName has an IP or port is an IP
             Match mIp = Regex.Match(printerName, @"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})");
             if (mIp.Success)
             {
@@ -801,7 +894,7 @@ namespace EpsonSpoolerBridge
                 catch { }
             }
 
-            // 3. Transmit via Windows Print Spooler with raw byte streaming (no page wrapping)
+            // 2. Transmit via Windows Print Spooler with raw byte streaming (no page wrapping)
             IntPtr hPrinter;
             if (!OpenPrinter(printerName, out hPrinter, IntPtr.Zero))
             {
@@ -811,22 +904,22 @@ namespace EpsonSpoolerBridge
 
             try
             {
+                SetPrinter(hPrinter, 0, IntPtr.Zero, PRINTER_CONTROL_PURGE);
                 SetPrinter(hPrinter, 0, IntPtr.Zero, PRINTER_CONTROL_RESUME);
                 EnsurePrinterOnline(hPrinter);
 
                 DOCINFOA docInfo = new DOCINFOA();
-                docInfo.pDocName = "Epson Maintenance RAW Job";
+                docInfo.pDocName = "Printer Maintenance Utility";
                 docInfo.pOutputFile = null;
                 docInfo.pDataType = "RAW";
 
                 int jobId = StartDocPrinter(hPrinter, 1, ref docInfo);
                 if (jobId <= 0)
                 {
-                    // Auto-heal stuck queue: Purge orphaned/error jobs and resume queue
                     SetPrinter(hPrinter, 0, IntPtr.Zero, PRINTER_CONTROL_PURGE);
                     SetPrinter(hPrinter, 0, IntPtr.Zero, PRINTER_CONTROL_RESUME);
                     EnsurePrinterOnline(hPrinter);
-                    System.Threading.Thread.Sleep(100);
+                    System.Threading.Thread.Sleep(50);
                     jobId = StartDocPrinter(hPrinter, 1, ref docInfo);
                 }
 
@@ -836,8 +929,10 @@ namespace EpsonSpoolerBridge
                     return;
                 }
 
+                StartPagePrinter(hPrinter);
                 int written = 0;
                 bool ok = WritePrinter(hPrinter, bytes, bytes.Length, out written);
+                EndPagePrinter(hPrinter);
                 EndDocPrinter(hPrinter);
 
                 if (!ok || written != bytes.Length)
@@ -886,6 +981,46 @@ namespace EpsonSpoolerBridge
             catch { }
         }
 
+        static byte[] BuildOfficialCleanPacket(byte cleanSubMode)
+        {
+            DateTime now = DateTime.Now;
+            using (MemoryStream ms = new MemoryStream())
+            {
+                // 1. 27-byte IEEE 1284.4 packet mode exit header (CLEANING/PIFLUSHING)
+                byte[] ejlHdr = Encoding.ASCII.GetBytes("\0\0\0\x1b\x01@EJL 1284.4\n@EJL     \n");
+                ms.Write(ejlHdr, 0, ejlHdr.Length);
+
+                // 2. 17-byte ESC @ ESC @ ESC ( R \x08\x00\x00REMOTE1 entry sequence
+                byte[] remHdr = Encoding.ASCII.GetBytes("\x1b@\x1b@\x1b(R\x08\0\0REMOTE1");
+                ms.Write(remHdr, 0, remHdr.Length);
+
+                // 3. 12-byte TI \x08\x00 \x00 [YearBE 2B] [Month] [Day] [Hour] [Min] [Sec]
+                byte[] tiCmd = new byte[] {
+                    (byte)'T', (byte)'I', 0x08, 0x00,
+                    0x00,
+                    (byte)((now.Year >> 8) & 0xFF),
+                    (byte)(now.Year & 0xFF),
+                    (byte)now.Month,
+                    (byte)now.Day,
+                    (byte)now.Hour,
+                    (byte)now.Minute,
+                    (byte)now.Second
+                };
+                ms.Write(tiCmd, 0, tiCmd.Length);
+
+                // 4. 6-byte CH \x02\x00 \x00 [cleanSubMode]
+                // 0x00 = Standard/Deep Head Cleaning (CLEANING), 0x10 = Power Ink Flushing / Air Bleed (PIFLUSHING)
+                byte[] chCmd = new byte[] { (byte)'C', (byte)'H', 0x02, 0x00, 0x00, cleanSubMode };
+                ms.Write(chCmd, 0, chCmd.Length);
+
+                // 5. 4-byte Exit REMOTE1: ESC \0\0\0
+                byte[] exitRem = new byte[] { 0x1b, 0x00, 0x00, 0x00 };
+                ms.Write(exitRem, 0, exitRem.Length);
+
+                return ms.ToArray(); // 66 bytes total
+            }
+        }
+
         static void CleanHead(string targetPrinter, string level)
         {
             string printerName = ResolveBestPrinterName(targetPrinter);
@@ -895,102 +1030,99 @@ namespace EpsonSpoolerBridge
                 return;
             }
 
-            // Map cleaning level to authentic Epson ESC/P-R REMOTE1 CH parameter
-            // Parameter 1: Head/Nozzle selection (0x00 = All nozzles)
-            // Parameter 2: Clean level (0x00=Light, 0x01=Medium, 0x02=Strong, 0x03=Ultrasonic, 0x04=Power Flush, 0x10=Air Bleed)
-            byte cleanMode = 0x00;
+            // Map cleaning level to authentic ESC/P-R REMOTE1 CH sub-mode:
+            // 0x00 = CLEANING (Head Cleaning: light, medium, strong, ultrasonic)
+            // 0x10 = PIFLUSHING (Power Ink Flushing / Ink Tube Air Bleed: power_flush, power, air_bleed, initial_charge)
+            byte cleanSubMode = 0x00;
             string lvl = (level ?? "light").ToLowerInvariant();
-            if (lvl == "medium") cleanMode = 0x01;
-            else if (lvl == "strong") cleanMode = 0x02;
-            else if (lvl == "ultrasonic") cleanMode = 0x03;
-            else if (lvl == "power_flush" || lvl == "power") cleanMode = 0x04;
-            else if (lvl == "air_bleed" || lvl == "initial_charge") cleanMode = 0x10;
-
-            byte[] chPacket = new byte[] {
-                0x1b, 0x40,                                     // ESC @
-                0x1b, 0x28, 0x52, 0x08, 0x00, 0x00,             // ESC ( R \x08\x00\x00
-                0x52, 0x45, 0x4d, 0x4f, 0x54, 0x45, 0x31,       // REMOTE1
-                0x43, 0x48, 0x02, 0x00, 0x00, cleanMode,        // CH len=2: color=0 (all), mode=cleanMode
-                0x1b, 0x00, 0x00, 0x00,                         // ESC \0\0\0 (exit REMOTE1)
-                0x1b, 0x40                                      // ESC @
-            };
-
-            // 1. Try Direct USB handle if accessible
-            string directPath = GetUsbPathForPrinter(printerName);
-            if (!string.IsNullOrEmpty(directPath))
+            if (lvl == "power_flush" || lvl == "power" || lvl == "air_bleed" || lvl == "initial_charge")
             {
-                IntPtr hUsb = CreateFile(directPath, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, IntPtr.Zero, OPEN_EXISTING, 0, IntPtr.Zero);
-                if (hUsb != (IntPtr)(-1) && hUsb != IntPtr.Zero)
-                {
-                    try
-                    {
-                        int directWritten = 0;
-                        if (WriteFile(hUsb, chPacket, chPacket.Length, out directWritten, IntPtr.Zero) && directWritten == chPacket.Length)
-                        {
-                            Console.WriteLine("{{\"status\":\"ok\",\"cleaned\":true,\"printer\":{0},\"level\":{1},\"transport\":\"direct_usb\",\"bytes_written\":{2}}}",
-                                EscapeJson(printerName), EscapeJson(lvl), directWritten);
-                            return;
-                        }
-                    }
-                    finally
-                    {
-                        CloseHandle(hUsb);
-                    }
-                }
+                cleanSubMode = 0x10;
             }
 
-            // 2. Transmit via Windows Print Spooler with auto-resume, clearing of offline mode, and RAW framing
+            byte[] chPacket = BuildOfficialCleanPacket(cleanSubMode);
+
+            // Transmit via Windows Print Spooler (OpenPrinter -> Purge/Resume -> StartDocPrinter -> StartPagePrinter -> WritePrinter -> EndPagePrinter -> EndDocPrinter)
             IntPtr hPrinter;
-            if (!OpenPrinter(printerName, out hPrinter, IntPtr.Zero))
+            if (OpenPrinter(printerName, out hPrinter, IntPtr.Zero))
             {
-                OutputError(20000010, "Cannot open printer '" + printerName + "'. Check interface cable connection and power.");
-                return;
-            }
-
-            try
-            {
-                SetPrinter(hPrinter, 0, IntPtr.Zero, PRINTER_CONTROL_RESUME);
-                EnsurePrinterOnline(hPrinter);
-
-                DOCINFOA docInfo = new DOCINFOA();
-                docInfo.pDocName = "Epson Head Cleaning";
-                docInfo.pOutputFile = null;
-                docInfo.pDataType = "RAW";
-
-                int jobId = StartDocPrinter(hPrinter, 1, ref docInfo);
-                if (jobId <= 0)
+                try
                 {
-                    // Auto-heal stuck queue: Purge orphaned/error jobs and resume queue
+                    // Always purge any stuck/orphaned jobs and unpause queue before dispatching cleaning command
                     SetPrinter(hPrinter, 0, IntPtr.Zero, PRINTER_CONTROL_PURGE);
                     SetPrinter(hPrinter, 0, IntPtr.Zero, PRINTER_CONTROL_RESUME);
                     EnsurePrinterOnline(hPrinter);
-                    System.Threading.Thread.Sleep(150);
-                    jobId = StartDocPrinter(hPrinter, 1, ref docInfo);
-                }
 
-                if (jobId <= 0)
+                    DOCINFOA docInfo = new DOCINFOA();
+                    docInfo.pDocName = "Printer Maintenance Utility";
+                    docInfo.pOutputFile = null;
+                    docInfo.pDataType = "RAW";
+
+                    int jobId = StartDocPrinter(hPrinter, 1, ref docInfo);
+                    if (jobId <= 0)
+                    {
+                        System.Threading.Thread.Sleep(50);
+                        jobId = StartDocPrinter(hPrinter, 1, ref docInfo);
+                    }
+
+                    if (jobId > 0)
+                    {
+                        StartPagePrinter(hPrinter);
+                        int written = 0;
+                        bool ok = WritePrinter(hPrinter, chPacket, chPacket.Length, out written);
+                        EndPagePrinter(hPrinter);
+                        EndDocPrinter(hPrinter);
+
+                        if (ok && written == chPacket.Length)
+                        {
+                            Console.WriteLine("{{\"status\":\"ok\",\"cleaned\":true,\"printer\":{0},\"level\":{1},\"transport\":\"winspool_raw\",\"bytes_written\":{2}}}",
+                                EscapeJson(printerName), EscapeJson(lvl), written);
+                            return;
+                        }
+                    }
+                }
+                finally
                 {
-                    OutputError(20000010, "Communication error: Cannot communicate with printer '" + printerName + "'. Check interface cable connection and power.");
-                    return;
+                    ClosePrinter(hPrinter);
                 }
-
-                int written = 0;
-                bool ok = WritePrinter(hPrinter, chPacket, chPacket.Length, out written);
-                EndDocPrinter(hPrinter);
-
-                if (!ok || written != chPacket.Length)
-                {
-                    OutputError(20000010, "Communication error: WritePrinter failed to transmit cleaning command to physical printer.");
-                    return;
-                }
-
-                Console.WriteLine("{{\"status\":\"ok\",\"cleaned\":true,\"printer\":{0},\"level\":{1},\"transport\":\"winspool_raw\",\"bytes_written\":{2}}}",
-                    EscapeJson(printerName), EscapeJson(lvl), written);
             }
-            finally
+
+            // Fallback: Transmit directly via APDA D4 Data Channel (Channel 0x40 DATA) if USB port is available
+            string apdaPort = ResolvePortForApda(printerName);
+            if (!string.IsNullOrEmpty(apdaPort))
             {
-                ClosePrinter(hPrinter);
+                try
+                {
+                    uint openRet = ADPortOpen(IntPtr.Zero, apdaPort);
+                    if (openRet == 1 || openRet == 0)
+                    {
+                        try
+                        {
+                            ADInitDevice(IntPtr.Zero);
+                            ADD4Negotiation(IntPtr.Zero);
+                            uint d4Written = 0;
+                            // Strip 27-byte @EJL 1284.4 exit header when already inside D4 Data Channel (0x40)
+                            byte[] d4Payload = new byte[chPacket.Length - 27];
+                            Array.Copy(chPacket, 27, d4Payload, 0, d4Payload.Length);
+                            uint sendRet = ADD4SendDataToDataCh(IntPtr.Zero, d4Payload, (uint)d4Payload.Length, ref d4Written);
+                            ADD4Termination(IntPtr.Zero);
+                            if (sendRet == 1 || d4Written > 0)
+                            {
+                                Console.WriteLine("{{\"status\":\"ok\",\"cleaned\":true,\"printer\":{0},\"level\":{1},\"transport\":\"apda_d4_data\",\"bytes_written\":{2}}}",
+                                    EscapeJson(printerName), EscapeJson(lvl), d4Written > 0 ? (int)d4Written : d4Payload.Length);
+                                return;
+                            }
+                        }
+                        finally
+                        {
+                            ADPortClose(IntPtr.Zero);
+                        }
+                    }
+                }
+                catch { }
             }
+
+            OutputError(20000010, "Communication error: Failed to transmit cleaning command to physical printer '" + printerName + "'. Check USB cable and power.");
         }
 
         static void CheckPrinterBusy(string targetPrinter)
@@ -1002,46 +1134,122 @@ namespace EpsonSpoolerBridge
                 return;
             }
 
+            uint jobsCount = 0;
+            uint winStatus = 0;
+            bool busy = false;
+
             IntPtr hPrinter;
-            if (!OpenPrinter(printerName, out hPrinter, IntPtr.Zero))
+            if (OpenPrinter(printerName, out hPrinter, IntPtr.Zero))
             {
-                Console.WriteLine("{\"status\":\"ok\",\"busy\":false,\"jobs\":0,\"printer_status\":0}");
-                return;
-            }
-
-            try
-            {
-                uint needed = 0;
-                GetPrinter(hPrinter, 2, IntPtr.Zero, 0, out needed);
-                if (needed > 0)
+                try
                 {
-                    IntPtr pBuf = Marshal.AllocHGlobal((int)needed);
-                    try
+                    uint needed = 0;
+                    GetPrinter(hPrinter, 2, IntPtr.Zero, 0, out needed);
+                    if (needed > 0)
                     {
-                        if (GetPrinter(hPrinter, 2, pBuf, needed, out needed))
+                        IntPtr pBuf = Marshal.AllocHGlobal((int)needed);
+                        try
                         {
-                            PRINTER_INFO_2 pi = (PRINTER_INFO_2)Marshal.PtrToStructure(pBuf, typeof(PRINTER_INFO_2));
-                            bool isBusyStatus = (pi.Status & (0x00000200 | 0x00000400 | 0x00004000 | 0x00080000 | 0x00008000)) != 0;
-                            bool hasJobs = pi.cJobs > 0;
-                            bool busy = isBusyStatus || hasJobs;
-
-                            Console.WriteLine("{{\"status\":\"ok\",\"busy\":{0},\"jobs\":{1},\"printer_status\":{2}}}",
-                                busy ? "true" : "false", pi.cJobs, pi.Status);
-                            return;
+                            if (GetPrinter(hPrinter, 2, pBuf, needed, out needed))
+                            {
+                                PRINTER_INFO_2 pi = (PRINTER_INFO_2)Marshal.PtrToStructure(pBuf, typeof(PRINTER_INFO_2));
+                                jobsCount = pi.cJobs;
+                                winStatus = pi.Status;
+                                bool isBusyStatus = (pi.Status & (0x00000200 | 0x00000400 | 0x00004000 | 0x00080000 | 0x00008000)) != 0;
+                                busy = isBusyStatus || (pi.cJobs > 0);
+                            }
+                        }
+                        finally
+                        {
+                            Marshal.FreeHGlobal(pBuf);
                         }
                     }
-                    finally
-                    {
-                        Marshal.FreeHGlobal(pBuf);
-                    }
+                }
+                finally
+                {
+                    ClosePrinter(hPrinter);
                 }
             }
-            finally
+
+            // If Windows Spooler queue is empty, also check hardware D4 @BDC ST2 status code
+            // (0x04 = Idle, 0x07 = Cleaning, 0x0D = PIFlushing/Wait, 0x02 = Busy, 0x03 = Printing)
+            uint stCodeVal = 0;
+            if (!busy)
             {
-                ClosePrinter(hPrinter);
+                string apdaPort = ResolvePortForApda(printerName);
+                bool isPortPhysicallyPresent = false;
+                if (!string.IsNullOrEmpty(apdaPort))
+                {
+                    var presentUsb = GetPhysicallyPresentUsbPrinters();
+                    foreach (var d in presentUsb)
+                    {
+                        if (string.Equals(d["port"], apdaPort, StringComparison.OrdinalIgnoreCase))
+                        {
+                            isPortPhysicallyPresent = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (isPortPhysicallyPresent)
+                {
+                    try
+                    {
+                        uint openRet = ADPortOpen(IntPtr.Zero, apdaPort);
+                        if (openRet == 1 || openRet == 0)
+                        {
+                            try
+                            {
+                                ADInitDevice(IntPtr.Zero);
+                                ADD4Negotiation(IntPtr.Zero);
+                                byte[] stCmd = new byte[] { (byte)'s', (byte)'t', 0x01, 0x00, 0x01 };
+                                byte[] rx = new byte[1024];
+                                uint rxLen = 0;
+                                uint sendRet = ADD4SendAndReceiveCtrlCh(IntPtr.Zero, stCmd, (uint)stCmd.Length, rx, (uint)rx.Length, ref rxLen);
+                                ADD4Termination(IntPtr.Zero);
+
+                                if (sendRet != 0x20000104 && rxLen > 12)
+                                {
+                                    string ascii = Encoding.GetEncoding("latin1").GetString(rx, 0, (int)rxLen);
+                                    int idx = ascii.IndexOf("@BDC ST2\r\n");
+                                    if (idx >= 0 && idx + 12 < rxLen)
+                                    {
+                                        int pos = idx + 12;
+                                        while (pos + 2 <= rxLen)
+                                        {
+                                            byte fid = rx[pos];
+                                            byte flen = rx[pos + 1];
+                                            if (pos + 2 + flen > rxLen) break;
+                                            if (fid == 0x01 && flen >= 1)
+                                            {
+                                                byte stCode = rx[pos + 2];
+                                                stCodeVal = stCode;
+                                                // In @BDC ST2: 0x04 = Idle, 0x00 = Error.
+                                                // Active hardware codes: 0x02 Busy, 0x03 Printing, 0x07 Cleaning, 0x08 Ink Charge, 0x0D PIFlushing/Wait
+                                                if (stCode == 0x02 || stCode == 0x03 || stCode == 0x07 || stCode == 0x08 || stCode == 0x0D)
+                                                {
+                                                    busy = true;
+                                                    winStatus = stCode;
+                                                }
+                                                break;
+                                            }
+                                            pos += 2 + flen;
+                                        }
+                                    }
+                                }
+                            }
+                            finally
+                            {
+                                ADPortClose(IntPtr.Zero);
+                            }
+                        }
+                    }
+                    catch { }
+                }
             }
 
-            Console.WriteLine("{\"status\":\"ok\",\"busy\":false,\"jobs\":0,\"printer_status\":0}");
+            Console.WriteLine("{{\"status\":\"ok\",\"busy\":{0},\"jobs\":{1},\"printer_status\":{2},\"st_code\":{3}}}",
+                busy ? "true" : "false", jobsCount, winStatus, stCodeVal);
         }
 
         static void SendAndRead(string printerName, string hexPayload, int timeoutMs)
@@ -1049,68 +1257,61 @@ namespace EpsonSpoolerBridge
             printerName = ResolveBestPrinterName(printerName);
             byte[] bytes = HexToBytes(hexPayload);
 
-            // 1. Try Direct USB bidirectional read/write
-            string directPath = GetUsbPathForPrinter(printerName);
-            if (!string.IsNullOrEmpty(directPath))
+            // 1. Try APDA IEEE 1284.4 D4 Control Channel for connected USB printers
+            // Avoids raw synchronous ReadFile hangs on usbprint.sys and never pollutes the Windows Print Spooler queue
+            string apdaPort = ResolvePortForApda(printerName);
+            if (!string.IsNullOrEmpty(apdaPort))
             {
-                IntPtr hUsb = CreateFile(directPath, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, IntPtr.Zero, OPEN_EXISTING, 0, IntPtr.Zero);
-                if (hUsb == (IntPtr)(-1) || hUsb == IntPtr.Zero)
+                try
                 {
-                    hUsb = CreateFile(directPath, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, IntPtr.Zero, OPEN_EXISTING, 0, IntPtr.Zero);
-                }
-
-                if (hUsb != (IntPtr)(-1) && hUsb != IntPtr.Zero)
-                {
-                    try
+                    uint openRet = ADPortOpen(IntPtr.Zero, apdaPort);
+                    if (openRet == 1 || openRet == 0)
                     {
-                        int directWritten = 0;
-                        if (WriteFile(hUsb, bytes, bytes.Length, out directWritten, IntPtr.Zero) && directWritten > 0)
+                        try
                         {
-                            byte[] readBuf = new byte[4096];
-                            StringBuilder fullAscii = new StringBuilder();
-                            StringBuilder fullHex = new StringBuilder();
-                            int totalBytesRead = 0;
+                            ADInitDevice(IntPtr.Zero);
+                            ADD4Negotiation(IntPtr.Zero);
 
-                            int maxAttempts = Math.Max(10, timeoutMs / 60);
-                            for (int attempt = 0; attempt < maxAttempts; attempt++)
+                            // Extract inner D4 control command if wrapped in REMOTE1, or default to 'st\x01\x00\x01' status query
+                            byte[] ctrlCmd = new byte[] { (byte)'s', (byte)'t', 0x01, 0x00, 0x01 };
+                            for (int i = 0; i + 4 <= bytes.Length; i++)
                             {
-                                System.Threading.Thread.Sleep(attempt == 0 ? 50 : 35);
-                                int bytesRead = 0;
-                                if (ReadFile(hUsb, readBuf, readBuf.Length, out bytesRead, IntPtr.Zero) && bytesRead > 0)
+                                if (bytes[i] == (byte)'|' && bytes[i + 1] == (byte)'|')
                                 {
-                                    byte[] slice = new byte[bytesRead];
-                                    Array.Copy(readBuf, slice, bytesRead);
-                                    fullHex.Append(BytesToHex(slice));
-                                    fullAscii.Append(Encoding.GetEncoding("latin1").GetString(slice));
-                                    totalBytesRead += bytesRead;
-
-                                    string s = fullAscii.ToString();
-                                    if (s.IndexOf("EE:", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                        s.IndexOf("ERR:", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                        s.IndexOf(":OK;", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                        s.IndexOf(":NA;", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                        s.IndexOf("@BDC ST", StringComparison.OrdinalIgnoreCase) >= 0)
+                                    int pLen = bytes[i + 2] | (bytes[i + 3] << 8);
+                                    if (pLen > 0 && i + 4 + pLen <= bytes.Length)
                                     {
+                                        ctrlCmd = new byte[4 + pLen];
+                                        Array.Copy(bytes, i, ctrlCmd, 0, 4 + pLen);
                                         break;
                                     }
                                 }
-                                else
-                                {
-                                    if (totalBytesRead > 0) break;
-                                }
                             }
 
-                            // If direct USB write succeeded, return direct_usb response without falling into locked spooler
-                            Console.WriteLine("{{\"status\":\"ok\",\"transport\":\"direct_usb\",\"bytes_written\":{0},\"bytes_read\":{1},\"hex\":{2},\"ascii\":{3}}}",
-                                directWritten, totalBytesRead, EscapeJson(fullHex.ToString()), EscapeJson(fullAscii.ToString()));
-                            return;
+                            byte[] rx = new byte[2048];
+                            uint rxLen = 0;
+                            uint sendRet = ADD4SendAndReceiveCtrlCh(IntPtr.Zero, ctrlCmd, (uint)ctrlCmd.Length, rx, (uint)rx.Length, ref rxLen);
+                            ADD4Termination(IntPtr.Zero);
+
+                            if (rxLen > 0)
+                            {
+                                byte[] slice = new byte[rxLen];
+                                Array.Copy(rx, slice, (int)rxLen);
+                                string hexResp = BytesToHex(slice);
+                                string asciiResp = Encoding.GetEncoding("latin1").GetString(slice);
+
+                                Console.WriteLine("{{\"status\":\"ok\",\"transport\":\"apda_d4_ctrl\",\"bytes_written\":{0},\"bytes_read\":{1},\"hex\":{2},\"ascii\":{3}}}",
+                                    ctrlCmd.Length, rxLen, EscapeJson(hexResp), EscapeJson(asciiResp));
+                                return;
+                            }
+                        }
+                        finally
+                        {
+                            ADPortClose(IntPtr.Zero);
                         }
                     }
-                    finally
-                    {
-                        CloseHandle(hUsb);
-                    }
                 }
+                catch { }
             }
 
             // 2. Try Direct TCP port 9100 bidirectional if network IP printer
@@ -1149,73 +1350,7 @@ namespace EpsonSpoolerBridge
                 catch { }
             }
 
-            // 3. Fallback: Transmit via Windows Print Spooler
-            IntPtr hPrinter;
-            if (!OpenPrinter(printerName, out hPrinter, IntPtr.Zero))
-            {
-                OutputError(20000010, "Cannot communicate with printer '" + printerName + "'. Ensure printer power is ON and USB cable is securely connected.");
-                return;
-            }
-
-            try
-            {
-                DOCINFOA docInfo = new DOCINFOA();
-                docInfo.pDocName = "Epson Maintenance RAW Query";
-                docInfo.pOutputFile = null;
-                docInfo.pDataType = "RAW";
-
-                int jobId = StartDocPrinter(hPrinter, 1, ref docInfo);
-                if (jobId <= 0)
-                {
-                    // Auto-heal stuck queue: Purge orphaned/error jobs and resume queue
-                    SetPrinter(hPrinter, 0, IntPtr.Zero, PRINTER_CONTROL_PURGE);
-                    SetPrinter(hPrinter, 0, IntPtr.Zero, PRINTER_CONTROL_RESUME);
-                    System.Threading.Thread.Sleep(100);
-                    jobId = StartDocPrinter(hPrinter, 1, ref docInfo);
-                }
-
-                if (jobId <= 0)
-                {
-                    OutputError(20000010, "Communication error: Cannot communicate with printer '" + printerName + "'. Check interface cable connection and power.");
-                    return;
-                }
-
-                int written = 0;
-                bool ok = WritePrinter(hPrinter, bytes, bytes.Length, out written);
-                EndDocPrinter(hPrinter);
-
-                if (!ok || written == 0)
-                {
-                    OutputError(20000010, "Communication error: Could not write query to printer hardware.");
-                    return;
-                }
-
-                // Attempt ReadPrinter from physical printer hardware
-                byte[] readBuf = new byte[1024];
-                int bytesRead = 0;
-                bool readOk = ReadPrinter(hPrinter, readBuf, readBuf.Length, out bytesRead);
-
-                if (readOk && bytesRead > 0)
-                {
-                    byte[] slice = new byte[bytesRead];
-                    Array.Copy(readBuf, slice, bytesRead);
-                    string hexResp = BytesToHex(slice);
-                    string asciiResp = Encoding.GetEncoding("latin1").GetString(slice);
-
-                    Console.WriteLine("{{\"status\":\"ok\",\"transport\":\"winspool_bidi\",\"bytes_written\":{0},\"bytes_read\":{1},\"hex\":{2},\"ascii\":{3}}}",
-                        written, bytesRead, EscapeJson(hexResp), EscapeJson(asciiResp));
-                }
-                else
-                {
-                    // Written successfully via spooler
-                    Console.WriteLine("{{\"status\":\"ok\",\"transport\":\"winspool_unidi\",\"bytes_written\":{0},\"bytes_read\":0,\"hex\":\"\",\"ascii\":\"\"}}",
-                        written);
-                }
-            }
-            finally
-            {
-                ClosePrinter(hPrinter);
-            }
+            OutputError(20000010, "Cannot communicate with printer '" + printerName + "'. Ensure printer power is ON and USB cable is securely connected.");
         }
 
         static byte[] HexToBytes(string hex)
@@ -1352,7 +1487,7 @@ namespace EpsonSpoolerBridge
                 {
                     if (!string.IsNullOrEmpty(d["port"])) return d["port"];
                 }
-                return "USB048";
+                return "";
             }
 
             if (target.StartsWith("USB", StringComparison.OrdinalIgnoreCase) ||
@@ -1399,10 +1534,10 @@ namespace EpsonSpoolerBridge
                 if (!string.IsNullOrEmpty(d["port"])) return d["port"];
             }
 
-            return "USB048";
+            return "";
         }
 
-        static void ReadCounters(string printerOrPort, string modelId)
+        static void ReadCounters(string printerOrPort, string modelId, int mainMax = 6346, int platenMax = 3416, int inkMax = 1300)
         {
             string port = ResolvePortForApda(printerOrPort);
             if (string.IsNullOrEmpty(port))
@@ -1426,27 +1561,31 @@ namespace EpsonSpoolerBridge
                 int m0 = ApdaReadRegister(0x30);
                 int m1 = ApdaReadRegister(0x31);
                 int mainPts = (m0 >= 0 && m1 >= 0) ? (m0 | (m1 << 8)) : 0;
-                int mainMax = 6346;
+                if (mainMax <= 0) mainMax = 6346;
                 double mainPct = Math.Round((double)mainPts / mainMax * 100.0, 1);
                 int mainDisplayPct = (int)Math.Round((double)mainPts / mainMax * 100.0);
 
                 int p0 = ApdaReadRegister(0x32);
                 int p1 = ApdaReadRegister(0x33);
                 int platenPts = (p0 >= 0 && p1 >= 0) ? (p0 | (p1 << 8)) : 0;
-                int platenMax = 3416;
+                if (platenMax <= 0) platenMax = 3416;
                 double platenPct = Math.Round((double)platenPts / platenMax * 100.0, 1);
                 int platenDisplayPct = (int)Math.Round((double)platenPts / platenMax * 100.0);
 
                 // Ink System pad counter (0xFC / 0xFD, fallback to 0x34 / 0x35)
-                int i0 = ApdaReadRegister(0xFC);
-                int i1 = ApdaReadRegister(0xFD);
-                if (i0 < 0 || (i0 == 0 && i1 == 0 && ApdaReadRegister(0x34) > 0))
+                int iFC = ApdaReadRegister(0xFC);
+                int iFD = ApdaReadRegister(0xFD);
+                int i34 = ApdaReadRegister(0x34);
+                int i35 = ApdaReadRegister(0x35);
+                int i0 = iFC;
+                int i1 = iFD;
+                if (i0 < 0 || (i0 == 0 && i1 == 0 && i34 > 0))
                 {
-                    i0 = ApdaReadRegister(0x34);
-                    i1 = ApdaReadRegister(0x35);
+                    i0 = i34;
+                    i1 = i35;
                 }
                 int inkPts = (i0 >= 0 && i1 >= 0) ? (i0 | (i1 << 8)) : 0;
-                int inkMax = 1300;
+                if (inkMax <= 0) inkMax = 1300;
                 double inkPct = Math.Round((double)inkPts / inkMax * 100.0, 1);
                 int inkDisplayPct = (int)Math.Round((double)inkPts / inkMax * 100.0);
 
@@ -1509,6 +1648,8 @@ namespace EpsonSpoolerBridge
                     bColor, bBw, wColor, wBw, blank, total);
                 sb.AppendFormat("\"ink_levels\":{{\"black\":{0},\"cyan\":{1},\"magenta\":{2},\"yellow\":{3}}},",
                     inkBk, inkC, inkM, inkY);
+                sb.AppendFormat("\"raw_registers\":{{\"48\":{0},\"49\":{1},\"50\":{2},\"51\":{3},\"52\":{4},\"53\":{5},\"252\":{6},\"253\":{7}}},",
+                    Math.Max(0, m0), Math.Max(0, m1), Math.Max(0, p0), Math.Max(0, p1), Math.Max(0, i34), Math.Max(0, i35), Math.Max(0, iFC), Math.Max(0, iFD));
                 sb.AppendFormat("\"stats\":{{\"total_pages\":{0},\"bw_pages\":{1},\"color_pages\":{2},\"scan_count\":{3},\"cleaning_count\":{4},\"serial_number\":{5}}}",
                     total, bwPages, colorPages, scanCount, cleanCount, EscapeJson(serial));
                 sb.Append("}");
@@ -1521,7 +1662,7 @@ namespace EpsonSpoolerBridge
             }
         }
 
-        static void ResetCounters(string printerOrPort, string targets)
+        static void ResetCounters(string printerOrPort, string targets, int mainMax = 6346, int platenMax = 3416, int inkMax = 1300)
         {
             string port = ResolvePortForApda(printerOrPort);
             if (string.IsNullOrEmpty(port))
@@ -1583,16 +1724,20 @@ namespace EpsonSpoolerBridge
                 ADD4Termination(IntPtr.Zero);
                 ADPortClose(IntPtr.Zero);
 
+                if (mainMax <= 0) mainMax = 6346;
+                if (platenMax <= 0) platenMax = 3416;
+                if (inkMax <= 0) inkMax = 1300;
+
                 StringBuilder sb = new StringBuilder("{");
                 sb.Append("\"status\":\"ok\",");
                 sb.Append("\"reset\":true,");
                 sb.Append("\"connected\":true,");
-                sb.AppendFormat("\"main_pad\":{{\"points\":{0},\"max_points\":6346,\"percent\":{1},\"display_percent\":{2},\"status\":\"NORMAL\"}},",
-                    mainPts, Math.Round((double)mainPts / 6346 * 100.0, 1).ToString(System.Globalization.CultureInfo.InvariantCulture), (int)Math.Round((double)mainPts / 6346 * 100.0));
-                sb.AppendFormat("\"platen_pad\":{{\"points\":{0},\"max_points\":3416,\"percent\":{1},\"display_percent\":{2},\"status\":\"NORMAL\"}},",
-                    platenPts, Math.Round((double)platenPts / 3416 * 100.0, 1).ToString(System.Globalization.CultureInfo.InvariantCulture), (int)Math.Round((double)platenPts / 3416 * 100.0));
-                sb.AppendFormat("\"ink_system_pad\":{{\"points\":{0},\"max_points\":1300,\"percent\":{1},\"display_percent\":{2},\"status\":\"NORMAL\"}}",
-                    inkPts, Math.Round((double)inkPts / 1300 * 100.0, 1).ToString(System.Globalization.CultureInfo.InvariantCulture), (int)Math.Round((double)inkPts / 1300 * 100.0));
+                sb.AppendFormat("\"main_pad\":{{\"points\":{0},\"max_points\":{3},\"percent\":{1},\"display_percent\":{2},\"status\":\"NORMAL\"}},",
+                    mainPts, Math.Round((double)mainPts / mainMax * 100.0, 1).ToString(System.Globalization.CultureInfo.InvariantCulture), (int)Math.Round((double)mainPts / mainMax * 100.0), mainMax);
+                sb.AppendFormat("\"platen_pad\":{{\"points\":{0},\"max_points\":{3},\"percent\":{1},\"display_percent\":{2},\"status\":\"NORMAL\"}},",
+                    platenPts, Math.Round((double)platenPts / platenMax * 100.0, 1).ToString(System.Globalization.CultureInfo.InvariantCulture), (int)Math.Round((double)platenPts / platenMax * 100.0), platenMax);
+                sb.AppendFormat("\"ink_system_pad\":{{\"points\":{0},\"max_points\":{3},\"percent\":{1},\"display_percent\":{2},\"status\":\"NORMAL\"}}",
+                    inkPts, Math.Round((double)inkPts / inkMax * 100.0, 1).ToString(System.Globalization.CultureInfo.InvariantCulture), (int)Math.Round((double)inkPts / inkMax * 100.0), inkMax);
                 sb.Append("}");
 
                 Console.WriteLine(sb.ToString());
@@ -1603,10 +1748,175 @@ namespace EpsonSpoolerBridge
             }
         }
 
+        static void ReadEeprom(string printerOrPort)
+        {
+            string port = ResolvePortForApda(printerOrPort);
+            if (string.IsNullOrEmpty(port))
+            {
+                OutputError(20000010, "Cannot communicate with printer. Interface cable (USB) is disconnected or powered off.");
+                return;
+            }
+
+            try
+            {
+                uint openRet = ADPortOpen(IntPtr.Zero, port);
+                if (openRet != 1)
+                {
+                    OutputError(20000010, "Cannot open printer port '" + port + "'. Check interface cable connection and power.");
+                    return;
+                }
+
+                ADInitDevice(IntPtr.Zero);
+                ADD4Negotiation(IntPtr.Zero);
+
+                byte[] dump = new byte[128];
+                // Read mapped EEPROM registers quickly via D4 control channel (skipping unmapped 0x96-0x9B timeout addresses)
+                int[] mappedRegs = new int[] {
+                    0x00, 0x01, 0x10, 0x11, 0x20, 0x21,
+                    0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39,
+                    0x40, 0x41, 0x50, 0x58, 0x5F, 0x65, 0x70, 0x7F
+                };
+                foreach (int reg in mappedRegs)
+                {
+                    if (reg >= 0 && reg < 128)
+                    {
+                        int v = ApdaReadRegister((ushort)reg);
+                        if (v >= 0 && v <= 255) dump[reg] = (byte)v;
+                    }
+                }
+
+                // Also read high registers 0x92/0x93 and 0xFC/0xFD for full diagnostic visibility
+                int r92 = ApdaReadRegister(0x92);
+                int r93 = ApdaReadRegister(0x93);
+                int rFC = ApdaReadRegister(0xFC);
+                int rFD = ApdaReadRegister(0xFD);
+
+                ADD4Termination(IntPtr.Zero);
+                ADPortClose(IntPtr.Zero);
+
+                string serial = GetPrinterSerial(printerOrPort, port);
+                if (!string.IsNullOrEmpty(serial))
+                {
+                    byte[] snBytes = Encoding.ASCII.GetBytes(serial);
+                    for (int i = 0; i < Math.Min(snBytes.Length, 10); i++)
+                    {
+                        dump[0x12 + i] = snBytes[i];
+                    }
+                }
+
+                StringBuilder sb = new StringBuilder("{");
+                sb.Append("\"status\":\"ok\",");
+                sb.Append("\"connected\":true,");
+                sb.AppendFormat("\"port\":{0},", EscapeJson(port));
+                sb.AppendFormat("\"bytes_base64\":{0},", EscapeJson(Convert.ToBase64String(dump)));
+                sb.AppendFormat("\"high_registers\":{{\"146\":{0},\"147\":{1},\"252\":{2},\"253\":{3}}}",
+                    Math.Max(0, r92), Math.Max(0, r93), Math.Max(0, rFC), Math.Max(0, rFD));
+                sb.Append("}");
+                Console.WriteLine(sb.ToString());
+            }
+            catch (Exception ex)
+            {
+                OutputError(20000010, ex.Message);
+            }
+        }
+
+        static void WriteRegister(string printerOrPort, string addrStr, string valStr)
+        {
+            string port = ResolvePortForApda(printerOrPort);
+            if (string.IsNullOrEmpty(port))
+            {
+                OutputError(20000010, "Cannot communicate with printer. Interface cable (USB) is disconnected or powered off.");
+                return;
+            }
+
+            try
+            {
+                int addr = addrStr.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
+                    ? Convert.ToInt32(addrStr.Substring(2), 16)
+                    : int.Parse(addrStr);
+                int val = valStr.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
+                    ? Convert.ToInt32(valStr.Substring(2), 16)
+                    : int.Parse(valStr);
+
+                uint openRet = ADPortOpen(IntPtr.Zero, port);
+                if (openRet != 1)
+                {
+                    OutputError(20000010, "Cannot open printer port '" + port + "'. Check interface cable connection and power.");
+                    return;
+                }
+
+                ADInitDevice(IntPtr.Zero);
+                ADD4Negotiation(IntPtr.Zero);
+                bool ok = ApdaWriteRegister((ushort)(addr & 0xFF), (byte)(val & 0xFF));
+                int readBack = ApdaReadRegister((ushort)(addr & 0xFF));
+                ADD4Termination(IntPtr.Zero);
+                ADPortClose(IntPtr.Zero);
+
+                Console.WriteLine(string.Format("{{\"status\":\"ok\",\"written\":{0},\"address\":{1},\"value\":{2},\"read_back\":{3}}}",
+                    ok ? "true" : "false", addr & 0xFF, val & 0xFF, readBack));
+            }
+            catch (Exception ex)
+            {
+                OutputError(20000010, ex.Message);
+            }
+        }
+
+        static void RestoreRegisters(string printerOrPort, string pairsStr)
+        {
+            string port = ResolvePortForApda(printerOrPort);
+            if (string.IsNullOrEmpty(port))
+            {
+                OutputError(20000010, "Cannot communicate with printer. Interface cable (USB) is disconnected or powered off.");
+                return;
+            }
+
+            try
+            {
+                uint openRet = ADPortOpen(IntPtr.Zero, port);
+                if (openRet != 1)
+                {
+                    OutputError(20000010, "Cannot open printer port '" + port + "'. Check interface cable connection and power.");
+                    return;
+                }
+
+                ADInitDevice(IntPtr.Zero);
+                ADD4Negotiation(IntPtr.Zero);
+
+                int count = 0;
+                if (!string.IsNullOrEmpty(pairsStr))
+                {
+                    string[] pairs = pairsStr.Split(new char[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (string pair in pairs)
+                    {
+                        string[] kv = pair.Split(':');
+                        if (kv.Length == 2)
+                        {
+                            int addr = kv[0].Trim().StartsWith("0x", StringComparison.OrdinalIgnoreCase)
+                                ? Convert.ToInt32(kv[0].Trim().Substring(2), 16)
+                                : int.Parse(kv[0].Trim());
+                            int val = kv[1].Trim().StartsWith("0x", StringComparison.OrdinalIgnoreCase)
+                                ? Convert.ToInt32(kv[1].Trim().Substring(2), 16)
+                                : int.Parse(kv[1].Trim());
+                            if (ApdaWriteRegister((ushort)(addr & 0xFF), (byte)(val & 0xFF))) count++;
+                        }
+                    }
+                }
+
+                ADD4Termination(IntPtr.Zero);
+                ADPortClose(IntPtr.Zero);
+
+                Console.WriteLine(string.Format("{{\"status\":\"ok\",\"restored_count\":{0}}}", count));
+            }
+            catch (Exception ex)
+            {
+                OutputError(20000010, ex.Message);
+            }
+        }
+
         // -------------------------------------------------------------
         // Live Printer Telemetry Extraction (Serial, Firmware, Counters)
         // -------------------------------------------------------------
-        static string DecodeEpsonSerial(string raw)
+        static string DecodeDeviceSerial(string raw)
         {
             if (string.IsNullOrEmpty(raw)) return "";
             raw = raw.Trim();
@@ -1661,7 +1971,7 @@ namespace EpsonSpoolerBridge
                             Match mSn = Regex.Match(devStr, @"SN:([A-Za-z0-9]+);");
                             if (mSn.Success)
                             {
-                                string decoded = DecodeEpsonSerial(mSn.Groups[1].Value);
+                                string decoded = DecodeDeviceSerial(mSn.Groups[1].Value);
                                 if (!string.IsNullOrEmpty(decoded) && decoded.Length >= 8) return decoded;
                             }
                         }
@@ -1736,7 +2046,7 @@ namespace EpsonSpoolerBridge
                                                 string cid = ik.GetValue("ContainerID") as string;
                                                 if (string.Equals(cid, targetContainerId, StringComparison.OrdinalIgnoreCase))
                                                 {
-                                                    string decoded = DecodeEpsonSerial(inst);
+                                                    string decoded = DecodeDeviceSerial(inst);
                                                     if (!string.IsNullOrEmpty(decoded) && decoded.Length == 10) return decoded;
                                                 }
                                             }
@@ -1750,7 +2060,7 @@ namespace EpsonSpoolerBridge
                 catch { }
             }
 
-            // 4. Fallback: Search all active Epson USB composite devices
+            // 4. Fallback: Search all active USB composite devices
             try
             {
                 using (var usbKey = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Enum\USB"))
@@ -1767,7 +2077,7 @@ namespace EpsonSpoolerBridge
                                     {
                                         foreach (string inst in sk.GetSubKeyNames())
                                         {
-                                            string decoded = DecodeEpsonSerial(inst);
+                                            string decoded = DecodeDeviceSerial(inst);
                                             if (decoded.Length == 10 && decoded.StartsWith("X", StringComparison.OrdinalIgnoreCase))
                                             {
                                                 return decoded;
@@ -1823,17 +2133,28 @@ namespace EpsonSpoolerBridge
                     "{{\"port\":{0},\"serial\":{1},\"firmware\":{2},\"borderless_color\":{3},\"borderless_bw\":{4},\"with_border_color\":{5},\"with_border_bw\":{6},\"blank_pages\":{7},\"total_pages\":{8},\"bw_pages\":{9},\"color_pages\":{10},\"scan_count\":{11},\"cleaning_count\":{12},\"ink_levels\":{{\"black\":{13},\"cyan\":{14},\"magenta\":{15},\"yellow\":{16}}}}}",
                     EscapeJson(port), EscapeJson(serial), EscapeJson(fw), bCol, bBw, wCol, wBw, blank, total, bwPages, colorPages, scanCount, cleanCount, inkBk, inkC, inkM, inkY);
 
+                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                string appDataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TrelUniversalTool");
+                string legacyAppDataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TrelEpsonUniversalTool");
                 string[] paths = new string[] {
+                    Path.Combine(baseDir, @"..\..\data\telemetry_cache.json"),
+                    Path.Combine(baseDir, @"..\data\telemetry_cache.json"),
+                    Path.Combine(baseDir, @"data\telemetry_cache.json"),
                     @"data\telemetry_cache.json",
                     @"..\data\telemetry_cache.json",
                     @"..\..\data\telemetry_cache.json",
-                    @"C:\Users\user\Desktop\Printer Resetter\data\telemetry_cache.json"
+                    Path.Combine(appDataDir, "telemetry_cache.json"),
+                    Path.Combine(legacyAppDataDir, "telemetry_cache.json")
                 };
                 foreach (string p in paths)
                 {
                     try
                     {
                         string dir = Path.GetDirectoryName(p);
+                        if (string.Equals(dir, appDataDir, StringComparison.OrdinalIgnoreCase) && !Directory.Exists(dir))
+                        {
+                            Directory.CreateDirectory(dir);
+                        }
                         if (string.IsNullOrEmpty(dir) || Directory.Exists(dir))
                         {
                             File.WriteAllText(p, json);
@@ -1858,11 +2179,18 @@ namespace EpsonSpoolerBridge
 
             try
             {
+                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                string appDataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TrelUniversalTool");
+                string legacyAppDataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TrelEpsonUniversalTool");
                 string[] paths = new string[] {
+                    Path.Combine(baseDir, @"..\..\data\telemetry_cache.json"),
+                    Path.Combine(baseDir, @"..\data\telemetry_cache.json"),
+                    Path.Combine(baseDir, @"data\telemetry_cache.json"),
                     @"data\telemetry_cache.json",
                     @"..\data\telemetry_cache.json",
                     @"..\..\data\telemetry_cache.json",
-                    @"C:\Users\user\Desktop\Printer Resetter\data\telemetry_cache.json"
+                    Path.Combine(appDataDir, "telemetry_cache.json"),
+                    Path.Combine(legacyAppDataDir, "telemetry_cache.json")
                 };
                 foreach (string p in paths)
                 {
@@ -1891,54 +2219,11 @@ namespace EpsonSpoolerBridge
 
         static void ReadPrinterPageCounters(string port, out int borderlessColor, out int borderlessBw, out int withBorderColor, out int withBorderBw, out int blankPages, out int totalPages)
         {
-            // First load cached / hardware baseline
+            // Fast instantaneous load from verified telemetry cache (< 1ms)
             LoadTelemetryCache(port, out borderlessColor, out borderlessBw, out withBorderColor, out withBorderBw, out blankPages, out totalPages);
-
-            // If port is reachable right now via APDA, read live registers
-            if (!string.IsNullOrEmpty(port))
-            {
-                try
-                {
-                    if (ADPortOpen(IntPtr.Zero, port) == 1)
-                    {
-                        try
-                        {
-                            ADInitDevice(IntPtr.Zero);
-                            ADD4Negotiation(IntPtr.Zero);
-
-                            int r9C = ApdaReadRegister(0x9C);
-                            int r9D = ApdaReadRegister(0x9D);
-                            int r9E = ApdaReadRegister(0x9E);
-                            int r9F = ApdaReadRegister(0x9F);
-                            int rA0 = ApdaReadRegister(0xA0);
-                            int rA1 = ApdaReadRegister(0xA1);
-                            int rA2 = ApdaReadRegister(0xA2);
-                            int rA3 = ApdaReadRegister(0xA3);
-                            int rAB = ApdaReadRegister(0xAB);
-                            int r92 = ApdaReadRegister(0x92);
-                            int r93 = ApdaReadRegister(0x93);
-
-                            if (r9C >= 0 && r9D >= 0) borderlessColor = r9C | (r9D << 8);
-                            if (r9E >= 0 && r9F >= 0) borderlessBw = r9E | (r9F << 8);
-                            if (rA0 >= 0 && rA1 >= 0) withBorderColor = rA0 | (rA1 << 8);
-                            if (rA2 >= 0 && rA3 >= 0) withBorderBw = rA2 | (rA3 << 8);
-                            if (rAB >= 0) blankPages = rAB;
-                            int calcTotal = borderlessColor + borderlessBw + withBorderColor + withBorderBw;
-                            if (r92 >= 0 && r93 >= 0) totalPages = r92 | (r93 << 8);
-                            else if (calcTotal > 0) totalPages = calcTotal;
-                        }
-                        finally
-                        {
-                            ADD4Termination(IntPtr.Zero);
-                            ADPortClose(IntPtr.Zero);
-                        }
-                    }
-                }
-                catch { }
-            }
         }
 
-        static void DrawEpsonPhotoNozzleCheck(
+        static void DrawPhotoNozzleCheck(
             Graphics g, 
             string printerName, 
             int pageWidth,
@@ -1962,18 +2247,21 @@ namespace EpsonSpoolerBridge
             int numLines = 18;    // 18 horizontal lines per box
 
             // -------------------------------------------------------------
-            // TOP BRANDING HEADER: Logo + "Trel- Epson Tool" + "Universal Core v3.0"
+            // TOP BRANDING HEADER: Logo + "Trel- Universal Tool" + "Universal Core v3.0"
             // -------------------------------------------------------------
             int brandTop = 50;
             int logoSize = 46;
 
             // Locate Logo.png
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
             string[] searchPaths = new string[]
             {
+                Path.Combine(baseDir, @"..\..\Logo.png"),
+                Path.Combine(baseDir, @"..\Logo.png"),
+                Path.Combine(baseDir, @"Logo.png"),
                 @"Logo.png",
                 @"..\Logo.png",
-                @"..\..\Logo.png",
-                @"C:\Users\user\Desktop\Printer Resetter\Logo.png"
+                @"..\..\Logo.png"
             };
             Image logoImg = null;
             foreach (string p in searchPaths)
@@ -2003,7 +2291,7 @@ namespace EpsonSpoolerBridge
             using (SolidBrush brushTitle = new SolidBrush(Color.FromArgb(15, 23, 42)))
             using (SolidBrush brushSub = new SolidBrush(Color.FromArgb(2, 132, 199)))
             {
-                g.DrawString("Trel- Epson Tool", fontTitle, brushTitle, textLeft, brandTop + 1);
+                g.DrawString("Trel- Universal Tool", fontTitle, brushTitle, textLeft, brandTop + 1);
                 g.DrawString("Universal Core v3.0", fontSub, brushSub, textLeft, brandTop + 25);
             }
 
@@ -2037,9 +2325,9 @@ namespace EpsonSpoolerBridge
             // -------------------------------------------------------------
             int colorLeft = left + boxWidth; // Touching or 1px adjacent
 
-            Color colY = Color.FromArgb(235, 185, 0);   // Epson Process Yellow
-            Color colM = Color.FromArgb(225, 0, 115);   // Epson Process Magenta
-            Color colC = Color.FromArgb(0, 155, 225);   // Epson Process Cyan
+            Color colY = Color.FromArgb(235, 185, 0);   // Process Yellow
+            Color colM = Color.FromArgb(225, 0, 115);   // Process Magenta
+            Color colC = Color.FromArgb(0, 155, 225);   // Process Cyan
 
             int sectionHeight = boxHeight / 3;
             int linesPerSection = numLines / 3; // 6 lines each
@@ -2162,24 +2450,7 @@ namespace EpsonSpoolerBridge
                 return;
             }
 
-            // Verify physical or network presence to prevent ghost print jobs
             string resolvedPort = ResolvePortForApda(printerName);
-            List<Dictionary<string, string>> presentDevs = GetPhysicallyPresentUsbPrinters();
-            bool isPhysical = false;
-            foreach (var dev in presentDevs)
-            {
-                if (!string.IsNullOrEmpty(dev["port"]) && string.Equals(dev["port"], resolvedPort, StringComparison.OrdinalIgnoreCase))
-                {
-                    isPhysical = true;
-                    break;
-                }
-            }
-
-            if (!isPhysical && !IsNetworkPrinterReachable(resolvedPort) && presentDevs.Count == 0)
-            {
-                OutputError(20000010, "Communication error (Error code: 20000010)\n\nCannot communicate with printer.\nCheck the following:\n1. The printer power is ON.\n2. The interface cable (USB) is securely connected to your computer.\n3. The correct port is selected.");
-                return;
-            }
 
             try
             {
@@ -2191,7 +2462,7 @@ namespace EpsonSpoolerBridge
 
                 PrintDocument pd = new PrintDocument();
                 pd.PrinterSettings.PrinterName = printerName;
-                pd.DocumentName = "Epson Nozzle Check";
+                pd.DocumentName = "Printhead Nozzle Check";
                 // CRITICAL: StandardPrintController prevents modal GUI dialog hang in headless background process
                 pd.PrintController = new StandardPrintController();
 
@@ -2204,7 +2475,7 @@ namespace EpsonSpoolerBridge
                 pd.PrintPage += (sender, e) =>
                 {
                     int pw = e.PageBounds.Width;
-                    DrawEpsonPhotoNozzleCheck(
+                    DrawPhotoNozzleCheck(
                         e.Graphics, 
                         printerName, 
                         pw,

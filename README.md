@@ -1,6 +1,6 @@
-# Universal Epson Adjustment Program & Maintenance Utility (AdjProg Pro Universal)
+# Universal Adjustment Program & Maintenance Utility (AdjProg Pro Universal)
 
-**AdjProg Pro Universal v3.0** is a standalone, ultra-modern Windows desktop application engineered for diagnosing, maintaining, reading, and resetting waste ink pad counters across **234 Epson printer models**.
+**AdjProg Pro Universal v3.0** is a standalone, ultra-modern Windows desktop application engineered for diagnosing, maintaining, reading, and resetting waste ink pad counters across **234 printer models**.
 
 Converted from legacy Python/PyInstaller to a modern, lightning-fast **Node.js + Electron + Vite** architecture with direct Windows Spooler (`winspool.drv`) hardware communication.
 
@@ -13,7 +13,7 @@ Converted from legacy Python/PyInstaller to a modern, lightning-fast **Node.js +
 | **Build Time** | 2 to 3 minutes (slow, fragile) | **~130 to 180 milliseconds** (Instant Vite build) |
 | **Startup Speed** | 4 to 8s (unpacking pyinstaller temp files) | **Instant (< 1 second)** |
 | **Desktop Window** | Python webview / Tkinter fallback | **Native Windows Desktop Application (Electron)** |
-| **Executable Size** | 27 MB to 30 MB bloated Python runtime | **39 KB native launcher (`EpsonUniversalTool.exe`)** |
+| **Executable Size** | 27 MB to 30 MB bloated Python runtime | **39 KB native launcher (`UniversalTool.exe`)** |
 | **Antivirus Compatibility** | Frequent false-positives with PyInstaller | Clean native Windows P/Invoke execution |
 | **Hardware Detection** | Polling Win32 print spooler | Real-time native P/Invoke + USB SetupAPI auto-detection |
 | **Telemetry & Live Dials** | Static periodic UI updates | **Live WebSocket streaming, dynamic radial gauge & fluid ink tanks** |
@@ -23,9 +23,9 @@ Converted from legacy Python/PyInstaller to a modern, lightning-fast **Node.js +
 ## 🚀 How to Launch
 
 ### Option 1: Standalone Desktop Application (1-Click)
-Double-click `EpsonUniversalTool.exe` or `start_app.bat` in the project root:
+Double-click `UniversalTool.exe` or `start_app.bat` in the project root:
 ```bash
-.\EpsonUniversalTool.exe
+.\UniversalTool.exe
 ```
 
 ### Option 2: Via npm Scripts
@@ -65,7 +65,7 @@ npm run app
 1. **Strict Physical Hardware Communication (Zero Demo Mode):**
    - 100% tied to physical hardware through `usbprint.sys`, `winspool.drv`, or TCP port 9100.
    - Immediate sub-second detection of physical USB printers via Windows SetupAPI (`GUID_DEVINTERFACE_USBPRINT`).
-   - Authentic Epson AdjProg error handling (`code: 20000010`) when the printer is powered off or disconnected.
+   - Authentic AdjProg error handling (`code: 20000010`) when the printer is powered off or disconnected.
 
 2. **Waste Ink Pad Counter Check & Reset (0%):**
    - Real-time querying of Main Pad, Platen Pad, and Borderless Pad counters.
@@ -98,7 +98,7 @@ npm run app
    - EcoTank Ink Tube Air Bleed & Damper Charge (~240s)
    - Print Nozzle Check Pattern (ESC/P-R Vector & High-Res Raster Fallback)
 
-7. **Calibrated Catalog for 234 Epson Printer Models:**
+7. **Calibrated Catalog for 234 Printer Models:**
    - Complete database with instant search and family filters (EcoTank L/M, ET-Series, WorkForce WF, Expression XP, Stylus/Photo).
 
 8. **NVRAM EEPROM Safety Vault & Rollback:**
@@ -127,13 +127,13 @@ Validates server health, 234-model catalog, zero-simulator enforcement, Spooler 
 ## 📦 Directory Structure
 
 ```
-├── EpsonUniversalTool.exe    # 39KB Native Desktop Application Launcher
+├── UniversalTool.exe         # 39KB Native Desktop Application Launcher
 ├── start_app.bat             # 1-click application runner
 ├── electron/
 │   └── main.js               # Electron native window & lifecycle manager
 ├── server/
 │   ├── index.js              # High-performance Node.js REST & WebSocket server
-│   ├── epson-protocol.js     # Authentic ESC/P-R Remote1 & factory packet engine
+│   ├── protocol-engine.js    # Authentic ESC/P-R Remote1 & factory packet engine
 │   ├── spooler-bridge.js     # Node.js wrapper for Windows Spooler & USB detection
 │   ├── backup-manager.js     # NVRAM .json + .bin vault snapshots and restore
 │   └── native/
@@ -144,7 +144,7 @@ Validates server health, 234-model catalog, zero-simulator enforcement, Spooler 
 │   └── styles.css            # Modern glassmorphic Obsidian theme
 ├── index.html                # Vite entrypoint & desktop interface layout
 ├── data/
-│   └── models_db.json        # 234 Epson model profiles & EEPROM registers
+│   └── models_db.json        # 234 model profiles & EEPROM registers
 ├── backups/                  # Timestamped NVRAM backup vault
 └── package.json              # Modern npm toolchain & scripts
 ```

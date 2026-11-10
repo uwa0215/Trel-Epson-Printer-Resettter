@@ -3,7 +3,7 @@ using System.IO;
 using System.Diagnostics;
 using System.Windows.Forms;
 
-namespace EpsonAppLauncher
+namespace UniversalAppLauncher
 {
     class Program
     {
@@ -28,17 +28,17 @@ namespace EpsonAppLauncher
                 string cleanDir = baseDir.TrimEnd('\\', '/');
                 Directory.SetCurrentDirectory(cleanDir);
 
-                // 1. Ensure spooler bridge binary is compiled
+                // 1. Ensure spooler bridge binary is compiled (32-bit x86 required for apdadrv.dll)
                 string bridgeExe = Path.Combine(cleanDir, @"server\native\spooler_bridge.exe");
                 if (!File.Exists(bridgeExe))
                 {
-                    string cscPath = @"C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe";
+                    string cscPath = @"C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe";
                     if (File.Exists(cscPath))
                     {
                         Process p = Process.Start(new ProcessStartInfo
                         {
                             FileName = cscPath,
-                            Arguments = "/nologo /optimize+ /target:exe /out:server\\native\\spooler_bridge.exe server\\native\\SpoolerBridge.cs",
+                            Arguments = "/nologo /optimize+ /platform:x86 /r:System.Drawing.dll /target:exe /out:server\\native\\spooler_bridge.exe server\\native\\SpoolerBridge.cs",
                             WorkingDirectory = cleanDir,
                             WindowStyle = ProcessWindowStyle.Hidden,
                             CreateNoWindow = true
@@ -83,8 +83,8 @@ namespace EpsonAppLauncher
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Failed to launch Epson Universal Tool:\n" + ex.Message, 
-                                "Trel- Epson Universal Tool", 
+                MessageBox.Show("Failed to launch Universal Tool:\n" + ex.Message, 
+                                "Trel- Universal Tool", 
                                 MessageBoxButtons.OK, 
                                 MessageBoxIcon.Error);
             }

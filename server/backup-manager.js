@@ -11,7 +11,9 @@ class BackupManager {
     if (backupDir) {
       this.backupDir = backupDir;
     } else if (process.env.APPDATA) {
-      this.backupDir = path.join(process.env.APPDATA, 'TrelEpsonUniversalTool', 'backups');
+      const preferred = path.join(process.env.APPDATA, 'TrelUniversalTool', 'backups');
+      const legacy = path.join(process.env.APPDATA, 'TrelEpsonUniversalTool', 'backups');
+      this.backupDir = fs.existsSync(legacy) && !fs.existsSync(preferred) ? legacy : preferred;
     } else {
       this.backupDir = path.join(process.cwd(), 'backups');
     }
@@ -119,12 +121,58 @@ class BackupManager {
   }
 
   /**
-   * Reads a backup file content
+   * Reads a backup file content (sanitized against path traversal)
    */
   getBackup(filename) {
-    const fullPath = path.join(this.backupDir, filename);
+    if (!filename) return null;
+    const safeName = path.basename(String(filename));
+    const fullPath = path.join(this.backupDir, safeName);
     if (!fs.existsSync(fullPath)) return null;
     return JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+  }
+
+  /**
+   * Resolves path to binary (.bin) or JSON (.json) backup file for download
+   */
+  getBackupFilePath(filename) {
+    if (!filename) return null;
+    const safeName = path.basename(String(filename));
+    const fullPath = path.join(this.backupDir, safeName);
+    if (!fs.existsSync(fullPath)) return null;
+    return fullPath;
+  }
+
+  /**
+   * Deletes a backup (.json and associated .bin)
+   */
+  deleteBackup(filename) {
+    if (!filename) return { status: 'error', message: 'Filename is required.' };
+    const safeName = path.basename(String(filename));
+    const jsonPath = path.join(this.backupDir, safeName);
+    if (!fs.existsSync(jsonPath)) {
+      return { status: 'error', message: 'Backup file not found.' };
+    }
+    try {
+      const data = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+      if (data && data.bin_file) {
+        const binPath = path.join(this.backupDir, path.basename(String(data.bin_file)));
+        if (fs.existsSync(binPath)) fs.unlinkSync(binPath);
+      }
+    } catch (e) {}
+    fs.unlinkSync(jsonPath);
+    return { status: 'ok', deleted: safeName };
+  }
+
+  /**
+   * Imports a backup JSON payload into the NVRAM Vault
+   */
+  importBackup(payload) {
+    if (!payload || typeof payload !== 'object' || !payload.address_hex_map) {
+      return { status: 'error', message: 'Invalid backup payload: missing address_hex_map.' };
+    }
+    const modelId = payload.model_id || 'Universal';
+    const notes = payload.notes ? `${payload.notes} (Imported)` : 'Imported Community Backup Snapshot';
+    return this.createBackup(modelId, payload.address_hex_map, notes);
   }
 }
 
