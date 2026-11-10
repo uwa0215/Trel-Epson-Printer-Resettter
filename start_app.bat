@@ -20,8 +20,8 @@ if not exist "dist\index.html" (
 
 :: Launch native desktop application
 echo Launching Standalone Desktop Application...
-if exist "UniversalTool.exe" (
-    start "" "UniversalTool.exe"
+if exist "TREL.exe" (
+    start "" "TREL.exe"
 ) else (
-    start "" "EpsonUniversalTool.exe"
+    npm start
 )

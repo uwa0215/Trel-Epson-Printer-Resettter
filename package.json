@@ -13,6 +13,7 @@
     "dist:installer": "npm run build:ui && electron-builder --win nsis",
     "dist:portable": "npm run build:ui && electron-builder --win portable",
     "server": "node server/index.js",
+    "build:launcher": "C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\csc.exe /nologo /optimize+ /target:winexe /win32icon:app_icon.ico /out:TREL.exe launcher.cs",
     "build:native": "C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\csc.exe /nologo /optimize+ /platform:x86 /r:System.Drawing.dll /target:exe /out:server\\native\\spooler_bridge.exe server\\native\\SpoolerBridge.cs"
   },
   "author": "",
