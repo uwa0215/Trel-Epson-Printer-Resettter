@@ -33,6 +33,201 @@
     </defs>
   </svg>
 
+  <!-- ===================================================================
+       WELCOME INTRO ANIMATION OVERLAY (PROFESSIONAL & CUTE MASCOT BOOT)
+       =================================================================== -->
+  <div class="welcome-intro-backdrop" id="welcomeIntroOverlay" style="display: none;">
+    <div class="welcome-intro-card" id="welcomeIntroCard">
+      <!-- Top Action Controls -->
+      <button class="welcome-skip-btn" id="btnSkipIntro" title="Skip Intro" aria-label="Skip Intro">✕</button>
+
+      <!-- Cute Animated Character Stage -->
+      <div class="mascot-stage" id="mascotInteractiveStage" title="Click me for a cute wink! ✨">
+        <!-- Floating Speech Bubble -->
+        <div class="mascot-speech-bubble" id="mascotSpeechBubble">
+          <span id="mascotSpeechText">Hi there! Welcome aboard! ✨</span>
+        </div>
+
+        <svg class="cute-mascot-svg" viewBox="0 0 280 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Dynamic Soft Ground Shadow -->
+          <ellipse class="mascot-ground-shadow" cx="140" cy="226" rx="68" ry="11" fill="url(#mascotShadowGrad)" />
+
+          <g class="mascot-float-body">
+            <!-- Antenna with Pulsing Beacon Crystal -->
+            <path d="M140 46 L140 28" stroke="url(#mascotBodyGrad)" stroke-width="5" stroke-linecap="round" />
+            <circle class="mascot-antenna-light" cx="140" cy="22" r="7.5" fill="#38bdf8" />
+            <circle class="mascot-antenna-pulse" cx="140" cy="22" r="14" fill="#38bdf8" />
+
+            <!-- Animated Cute Receipt Paper Sliding Out -->
+            <g class="mascot-paper-sheet">
+              <rect x="105" y="8" width="70" height="52" rx="7" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+              <!-- Cute Heart on paper -->
+              <path d="M136 24 C136 21, 139 19, 140 22 C141 19, 144 21, 144 24 C144 27, 140 30, 140 32 C140 30, 136 27, 136 24 Z" fill="#f43f5e" />
+              <rect x="116" y="37" width="48" height="3.5" rx="1.75" fill="#94a3b8" />
+              <rect x="122" y="44" width="36" height="3" rx="1.5" fill="#cbd5e1" />
+            </g>
+
+            <!-- Main Printer Chassis / Body Outer Shell -->
+            <rect class="mascot-chassis" x="48" y="46" width="184" height="136" rx="36" fill="url(#mascotBodyGrad)" filter="url(#mascotGlow)" />
+            
+            <!-- Sleek Modern Face Bezel Frame -->
+            <rect x="56" y="54" width="168" height="120" rx="30" fill="url(#mascotInnerGrad)" />
+
+            <!-- Paper Feed Slot -->
+            <rect x="94" y="47" width="92" height="7" rx="3.5" fill="#0f172a" opacity="0.75" />
+
+            <!-- Glossy Visor Screen -->
+            <rect class="mascot-screen" x="72" y="67" width="136" height="82" rx="22" fill="#0f172a" />
+
+            <!-- Eyes & Kawaii Facial Features -->
+            <g class="mascot-face" id="mascotFace">
+              <!-- Left Eye -->
+              <g class="mascot-eye mascot-eye-left" id="mascotEyeLeft">
+                <ellipse cx="106" cy="103" rx="9" ry="12" fill="#38bdf8" />
+                <circle cx="109" cy="99" r="4" fill="#ffffff" />
+                <circle cx="104" cy="108" r="2" fill="#ffffff" />
+              </g>
+
+              <!-- Right Eye -->
+              <g class="mascot-eye mascot-eye-right" id="mascotEyeRight">
+                <ellipse cx="174" cy="103" rx="9" ry="12" fill="#38bdf8" />
+                <circle cx="177" cy="99" r="4" fill="#ffffff" />
+                <circle cx="172" cy="108" r="2" fill="#ffffff" />
+              </g>
+
+              <!-- Blushing Cheeks -->
+              <ellipse class="mascot-blush mascot-blush-left" cx="93" cy="116" rx="8" ry="4.5" fill="#fb7185" />
+              <ellipse class="mascot-blush mascot-blush-right" cx="187" cy="116" rx="8" ry="4.5" fill="#fb7185" />
+
+              <!-- Cheerful Smiling Mouth -->
+              <path class="mascot-mouth" id="mascotMouth" d="M133 113 Q140 122 147 113" stroke="#ffffff" stroke-width="3" stroke-linecap="round" fill="none" />
+            </g>
+
+            <!-- Bottom Output Tray Bar -->
+            <rect x="78" y="157" width="124" height="10" rx="5" fill="#1e293b" />
+            <rect class="mascot-tray-led" x="110" y="160" width="60" height="4" rx="2" fill="#10b981" />
+
+            <!-- Floating Mini CMYK Droplet Companions -->
+            <!-- Cyan Droplet -->
+            <g class="cmyk-drop drop-c" title="Cyan Ink Ready">
+              <path d="M34 148 C34 136, 47 124, 47 124 C47 124, 60 136, 60 148 C60 155, 54 161, 47 161 C40 161, 34 155, 34 148 Z" fill="#06b6d4" />
+              <circle cx="44" cy="146" r="2" fill="#fff" />
+              <circle cx="50" cy="146" r="2" fill="#fff" />
+              <path d="M45 151 Q47 154 49 151" stroke="#fff" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+            </g>
+
+            <!-- Magenta Droplet -->
+            <g class="cmyk-drop drop-m" title="Magenta Ink Ready">
+              <path d="M220 148 C220 136, 233 124, 233 124 C233 124, 246 136, 246 148 C246 155, 240 161, 233 161 C226 161, 220 155, 220 148 Z" fill="#ec4899" />
+              <circle cx="230" cy="146" r="2" fill="#fff" />
+              <circle cx="236" cy="146" r="2" fill="#fff" />
+              <path d="M231 151 Q233 154 235 151" stroke="#fff" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+            </g>
+
+            <!-- Yellow Droplet -->
+            <g class="cmyk-drop drop-y" title="Yellow Ink Ready">
+              <circle cx="58" cy="180" r="11" fill="#eab308" />
+              <circle cx="55" cy="178" r="1.8" fill="#fff" />
+              <circle cx="61" cy="178" r="1.8" fill="#fff" />
+              <path d="M56 183 Q58 185 60 183" stroke="#fff" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+            </g>
+
+            <!-- Key Black Droplet -->
+            <g class="cmyk-drop drop-k" title="Black Ink Ready">
+              <circle cx="222" cy="180" r="11" fill="#475569" />
+              <circle cx="219" cy="178" r="1.8" fill="#fff" />
+              <circle cx="225" cy="178" r="1.8" fill="#fff" />
+              <path d="M220 183 Q222 185 224 183" stroke="#fff" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+            </g>
+
+            <!-- Twinkling Sparkle Stars -->
+            <g class="mascot-sparkle sparkle-1">
+              <path d="M26 84 Q34 84 34 76 Q34 84 42 84 Q34 84 34 92 Q34 84 26 84 Z" fill="#38bdf8" />
+            </g>
+            <g class="mascot-sparkle sparkle-2">
+              <path d="M246 64 Q253 64 253 57 Q253 64 260 64 Q253 64 253 71 Q253 64 246 64 Z" fill="#fbbf24" />
+            </g>
+            <g class="mascot-sparkle sparkle-3">
+              <path d="M200 28 Q205 28 205 23 Q205 28 210 28 Q205 28 205 33 Q205 28 200 28 Z" fill="#ec4899" />
+            </g>
+          </g>
+
+          <defs>
+            <linearGradient id="mascotBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#38bdf8" />
+              <stop offset="45%" stop-color="#6366f1" />
+              <stop offset="100%" stop-color="#a855f7" />
+            </linearGradient>
+            <linearGradient id="mascotInnerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#ffffff" />
+              <stop offset="100%" stop-color="#f8fafc" />
+            </linearGradient>
+            <radialGradient id="mascotShadowGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="rgba(15, 23, 42, 0.4)" />
+              <stop offset="100%" stop-color="rgba(15, 23, 42, 0)" />
+            </radialGradient>
+            <filter id="mascotGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#6366f1" flood-opacity="0.32" />
+            </filter>
+          </defs>
+        </svg>
+      </div>
+
+      <!-- Welcome Typography Block -->
+      <div class="welcome-content-block">
+        <div class="welcome-pill-badge">
+          <span class="pulse-sparkle">✨</span>
+          <span>WELCOME TO TREL- UNIVERSAL TOOL</span>
+        </div>
+        <h1 class="welcome-heading">Your Smart Printer Studio</h1>
+        <p class="welcome-tagline">
+          Precision EEPROM calibration, automated maintenance & waste ink pad restoration made delightfully simple.
+        </p>
+      </div>
+
+      <!-- Live Boot Subsystems Status Row -->
+      <div class="welcome-subsystems-row">
+        <div class="subsystem-pill" id="subsystemBridge">
+          <span class="subsystem-dot"></span>
+          <span class="subsystem-label">Spooler Bridge</span>
+        </div>
+        <div class="subsystem-pill" id="subsystemCatalog">
+          <span class="subsystem-dot"></span>
+          <span class="subsystem-label">234 Profiles</span>
+        </div>
+        <div class="subsystem-pill" id="subsystemHardware">
+          <span class="subsystem-dot"></span>
+          <span class="subsystem-label">Hardware Link</span>
+        </div>
+      </div>
+
+      <!-- Progress Track & Boot Loader -->
+      <div class="welcome-progress-wrap">
+        <div class="welcome-progress-bar">
+          <div class="welcome-progress-fill" id="welcomeProgressFill"></div>
+        </div>
+        <div class="welcome-progress-status">
+          <span id="welcomeStatusText">Initializing precision engine...</span>
+          <span id="welcomePercentText">0%</span>
+        </div>
+      </div>
+
+      <!-- Action Footer Row -->
+      <div class="welcome-footer-row">
+        <label class="welcome-pref-toggle" title="Check to show this cute intro whenever the application launches">
+          <input type="checkbox" id="chkShowIntroOnStartup" checked>
+          <span>Show intro on startup</span>
+        </label>
+        <button class="btn btn-primary welcome-enter-btn" id="btnEnterWorkspace">
+          <span>Explore Workspace</span>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="app-container">
 
     <!-- Mobile Sidebar Backdrop Overlay -->
@@ -218,6 +413,11 @@
               <svg id="iconSoundOn" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
                 <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              </svg>
+            </button>
+            <button class="btn-icon" id="btnReplayIntro" onclick="replayWelcomeIntro()" title="Play Welcome Intro Animation ✨">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2l2.4 7.4h7.6l-6.2 4.5 2.4 7.4-6.2-4.5-6.2 4.5 2.4-7.4-6.2-4.5h7.6z"></path>
               </svg>
             </button>
             <button class="btn-icon" id="btnRefreshPrinters" title="Re-scan USB & Hardware Ports">

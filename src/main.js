@@ -60,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initCertificateSync();
   updateSoundToggleUI();
   initTheme();
+  initWelcomeIntro();
 
   // Periodic fallback synchronization every 3 seconds
   setInterval(loadSystemOverview, 3000);
@@ -2361,3 +2362,253 @@ window.toggleTheme = function() {
     window.showToast(next === 'dark' ? '🌙 Cyber Dark Studio theme activated.' : '☀️ Porcelain Light Studio theme activated.', 'info', 2200);
   }
 };
+
+// ===================================================================
+// WELCOME INTRO ANIMATION & CUTE MASCOT INTERACTION CONTROLLER
+// ===================================================================
+
+let introTimer = null;
+let introProgressInterval = null;
+
+function playWelcomeChime() {
+  if (state.soundMuted) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Warm harmonious arpeggio: C5 (523.25), E5 (659.25), G5 (783.99), C6 (1046.50)
+    const notes = [523.25, 659.25, 783.99, 1046.50];
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const startTime = ctx.currentTime + (idx * 0.09);
+      const duration = 0.45;
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, startTime);
+      gain.gain.setValueAtTime(0.001, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.06, startTime + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+    });
+  } catch (e) {}
+}
+
+function playCuteChirp() {
+  if (state.soundMuted) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const t = ctx.currentTime;
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, t);
+    osc.frequency.exponentialRampToValueAtTime(1480, t + 0.12);
+    gain.gain.setValueAtTime(0.08, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.18);
+  } catch (e) {}
+}
+
+function initWelcomeIntro() {
+  const overlay = document.getElementById('welcomeIntroOverlay');
+  const card = document.getElementById('welcomeIntroCard');
+  const btnSkip = document.getElementById('btnSkipIntro');
+  const btnEnter = document.getElementById('btnEnterWorkspace');
+  const chkShow = document.getElementById('chkShowIntroOnStartup');
+  const stage = document.getElementById('mascotInteractiveStage');
+
+  if (!overlay || !card) return;
+
+  // Restore user startup preference
+  const showOnStartup = localStorage.getItem('trel_show_intro') !== 'false';
+  if (chkShow) chkShow.checked = showOnStartup;
+
+  // Wire event handlers
+  if (btnSkip) btnSkip.addEventListener('click', closeWelcomeIntro);
+  if (btnEnter) btnEnter.addEventListener('click', closeWelcomeIntro);
+  if (chkShow) {
+    chkShow.addEventListener('change', () => {
+      localStorage.setItem('trel_show_intro', chkShow.checked ? 'true' : 'false');
+    });
+  }
+
+  // Interactive cute mascot click / hover giggle
+  if (stage) {
+    stage.addEventListener('click', triggerMascotGiggle);
+  }
+
+  // Pressing Enter or Escape dismisses the welcome intro
+  window.addEventListener('keydown', (e) => {
+    if (overlay.classList.contains('active')) {
+      if (e.key === 'Enter' || e.key === 'Escape') {
+        closeWelcomeIntro();
+      }
+    }
+  });
+
+  // Launch intro if enabled
+  if (showOnStartup) {
+    runWelcomeIntroSequence();
+  }
+}
+
+function runWelcomeIntroSequence() {
+  const overlay = document.getElementById('welcomeIntroOverlay');
+  const card = document.getElementById('welcomeIntroCard');
+  const fill = document.getElementById('welcomeProgressFill');
+  const percentText = document.getElementById('welcomePercentText');
+  const statusText = document.getElementById('welcomeStatusText');
+  const btnEnter = document.getElementById('btnEnterWorkspace');
+
+  const pillBridge = document.getElementById('subsystemBridge');
+  const pillCatalog = document.getElementById('subsystemCatalog');
+  const pillHw = document.getElementById('subsystemHardware');
+
+  if (!overlay || !card) return;
+
+  // Clear any existing timers
+  if (introTimer) clearTimeout(introTimer);
+  if (introProgressInterval) clearInterval(introProgressInterval);
+
+  // Reset state
+  overlay.style.display = 'flex';
+  card.classList.remove('closing');
+  if (fill) fill.style.width = '0%';
+  if (percentText) percentText.innerText = '0%';
+  if (statusText) statusText.innerText = 'Initializing precision core engine...';
+
+  [pillBridge, pillCatalog, pillHw].forEach(p => {
+    if (p) {
+      p.className = 'subsystem-pill loading';
+    }
+  });
+
+  // Fade in overlay smoothly
+  requestAnimationFrame(() => {
+    overlay.classList.add('active');
+  });
+
+  // Play pleasant acoustic chime
+  setTimeout(playWelcomeChime, 250);
+
+  // Progressive simulated boot pipeline (2.2s duration)
+  let progress = 0;
+  const startTime = Date.now();
+  const totalDuration = 2200;
+
+  introProgressInterval = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    progress = Math.min(100, Math.round((elapsed / totalDuration) * 100));
+
+    if (fill) fill.style.width = `${progress}%`;
+    if (percentText) percentText.innerText = `${progress}%`;
+
+    if (progress >= 30 && progress < 65) {
+      if (statusText) statusText.innerText = 'Windows Spooler Bridge active (x86 P/Invoke)...';
+      if (pillBridge && !pillBridge.classList.contains('ready')) {
+        pillBridge.className = 'subsystem-pill ready';
+      }
+    } else if (progress >= 65 && progress < 95) {
+      if (statusText) statusText.innerText = 'Loaded 234 verified printer EEPROM profiles...';
+      if (pillCatalog && !pillCatalog.classList.contains('ready')) {
+        pillCatalog.className = 'subsystem-pill ready';
+      }
+    } else if (progress >= 95) {
+      if (statusText) statusText.innerText = 'All systems ready! Welcome to Trel- Universal Tool ✨';
+      if (pillHw && !pillHw.classList.contains('ready')) {
+        pillHw.className = 'subsystem-pill ready';
+      }
+      if (btnEnter) {
+        btnEnter.innerHTML = `<span>Get Started ✨</span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
+      }
+    }
+
+    if (progress >= 100) {
+      clearInterval(introProgressInterval);
+      // Auto-advance after 1.8 seconds of celebration
+      introTimer = setTimeout(() => {
+        closeWelcomeIntro();
+      }, 1800);
+    }
+  }, 35);
+}
+
+function closeWelcomeIntro() {
+  const overlay = document.getElementById('welcomeIntroOverlay');
+  const card = document.getElementById('welcomeIntroCard');
+  if (!overlay || !overlay.classList.contains('active')) return;
+
+  if (introTimer) clearTimeout(introTimer);
+  if (introProgressInterval) clearInterval(introProgressInterval);
+
+  if (card) card.classList.add('closing');
+  overlay.classList.remove('active');
+
+  setTimeout(() => {
+    overlay.style.display = 'none';
+    if (card) card.classList.remove('closing');
+  }, 420);
+}
+
+window.replayWelcomeIntro = function() {
+  runWelcomeIntroSequence();
+};
+
+const cutePhrases = [
+  "Hi there! Welcome aboard! ✨",
+  "Teehee! Printhead is sparkling clean! 💖",
+  "All 234 printer models ready to go! 🚀",
+  "Click me again for more sparkles! ⭐",
+  "Zero waste pad reset ready! 🌸",
+  "Happy printing today! 🍀"
+];
+let phraseIndex = 0;
+
+function triggerMascotGiggle(e) {
+  const stage = document.getElementById('mascotInteractiveStage');
+  const bubbleText = document.getElementById('mascotSpeechText');
+  if (!stage) return;
+
+  // Add giggle animation
+  stage.classList.remove('giggle');
+  void stage.offsetWidth; // trigger reflow
+  stage.classList.add('giggle');
+  setTimeout(() => stage.classList.remove('giggle'), 750);
+
+  // Play audio blip
+  playCuteChirp();
+
+  // Cycle speech bubble
+  phraseIndex = (phraseIndex + 1) % cutePhrases.length;
+  if (bubbleText) {
+    bubbleText.innerText = cutePhrases[phraseIndex];
+  }
+
+  // Spawn floating cute heart / star emojis at click location
+  const rect = stage.getBoundingClientRect();
+  const clickX = e ? e.clientX - rect.left : rect.width / 2;
+  const clickY = e ? e.clientY - rect.top : rect.height / 2;
+
+  const icons = ['💖', '✨', '⭐', '🌸'];
+  for (let i = 0; i < 3; i++) {
+    const heart = document.createElement('div');
+    heart.className = 'floating-heart';
+    heart.innerText = icons[Math.floor(Math.random() * icons.length)];
+    heart.style.left = `${clickX + (Math.random() * 40 - 20)}px`;
+    heart.style.top = `${clickY + (Math.random() * 20 - 10)}px`;
+    heart.style.setProperty('--tx', `${(Math.random() - 0.5) * 60}px`);
+    heart.style.setProperty('--rot', `${(Math.random() - 0.5) * 45}deg`);
+    stage.appendChild(heart);
+
+    setTimeout(() => {
+      if (heart.parentNode) heart.parentNode.removeChild(heart);
+    }, 1100);
+  }
+}
+
