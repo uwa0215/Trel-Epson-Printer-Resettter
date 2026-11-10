@@ -7,7 +7,7 @@
   <meta name="description" content="Professional standalone printer maintenance, diagnostic telemetry, and waste ink pad reset utility for 234 printer models.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700;800&family=Quicksand:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="/Logo.png">
   <link rel="stylesheet" href="/src/styles.css">
 </head>
@@ -239,11 +239,28 @@
     <aside class="sidebar" id="appSidebar">
       <div>
         <div class="brand-section">
-          <div class="brand-logo-badge">
-            <img src="/Logo.png" alt="Trel- Universal Tool Logo" class="brand-logo-img">
+          <div class="brand-logo-badge cute-brand-badge" id="brandLogoMascot" title="Click Printy for a cute wink! ✨">
+            <svg class="brand-mascot-svg" viewBox="0 0 48 48" fill="none">
+              <rect x="4" y="8" width="40" height="32" rx="12" fill="url(#mascotBodyGrad)" />
+              <rect x="7" y="11" width="34" height="26" rx="9" fill="#ffffff" />
+              <rect x="11" y="14" width="26" height="18" rx="6" fill="#0f172a" />
+              <!-- Eyes -->
+              <ellipse class="mascot-eye" cx="18" cy="22" rx="2.5" ry="3.5" fill="#38bdf8" />
+              <circle cx="19" cy="21" r="1" fill="#ffffff" />
+              <ellipse class="mascot-eye" cx="30" cy="22" rx="2.5" ry="3.5" fill="#38bdf8" />
+              <circle cx="31" cy="21" r="1" fill="#ffffff" />
+              <!-- Blushing cheeks -->
+              <ellipse cx="15" cy="26" rx="2" ry="1.2" fill="#fb7185" />
+              <ellipse cx="33" cy="26" rx="2" ry="1.2" fill="#fb7185" />
+              <!-- Smile -->
+              <path d="M22 25 Q24 27.5 26 25" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" fill="none" />
+              <!-- Top Crystal -->
+              <circle cx="24" cy="5" r="3" fill="#38bdf8" />
+              <path d="M24 8 L24 5" stroke="#6366f1" stroke-width="2" stroke-linecap="round" />
+            </svg>
           </div>
           <div class="brand-text-block">
-            <div class="brand-title">Trel- Universal Tool</div>
+            <div class="brand-title">TREL <span class="cute-sparkle">✨</span></div>
             <div class="brand-subtitle">Universal Core v3.0</div>
           </div>
           <button class="btn-icon sidebar-close-btn" id="btnCloseSidebar" title="Close Menu" aria-label="Close Menu">✕</button>
@@ -333,6 +350,30 @@
       </div>
 
       <div class="sidebar-footer">
+        <!-- Cute Sidebar Companion Assistant Widget -->
+        <div class="sidebar-companion-card" id="sidebarCompanion" title="Click Printy for friendly encouragement! ✨">
+          <div class="companion-avatar-wrap">
+            <svg class="companion-mini-svg" viewBox="0 0 60 52" fill="none">
+              <rect x="6" y="8" width="48" height="36" rx="12" fill="url(#mascotBodyGrad)" />
+              <rect x="9" y="11" width="42" height="30" rx="9" fill="#ffffff" />
+              <rect x="14" y="15" width="32" height="20" rx="6" fill="#0f172a" />
+              <ellipse class="mascot-eye" cx="23" cy="24" rx="2.6" ry="3.6" fill="#38bdf8" />
+              <circle cx="24" cy="23" r="1" fill="#ffffff" />
+              <ellipse class="mascot-eye" cx="37" cy="24" rx="2.6" ry="3.6" fill="#38bdf8" />
+              <circle cx="38" cy="23" r="1" fill="#ffffff" />
+              <ellipse cx="19" cy="29" rx="2.2" ry="1.2" fill="#fb7185" />
+              <ellipse cx="41" cy="29" rx="2.2" ry="1.2" fill="#fb7185" />
+              <path d="M28 27 Q30 30 32 27" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" fill="none" />
+              <circle cx="30" cy="5" r="2.5" fill="#38bdf8" />
+              <path d="M30 8 L30 5" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round" />
+            </svg>
+          </div>
+          <div class="companion-text-wrap">
+            <div class="companion-name">Printy Companion <span class="cute-badge-tag">ACTIVE ✨</span></div>
+            <div class="companion-status" id="companionBubbleText">Ready to tune your printer! 💖</div>
+          </div>
+        </div>
+
         <div class="engine-pill">Engine: ESC/P-R Remote1 (0x0797)</div>
         <div class="engine-pill" style="color: var(--accent-emerald);">Windows Native Spooler Engine</div>
       </div>
@@ -362,7 +403,7 @@
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
               </svg>
             </span>
-            <span>Trel- Universal</span>
+            <span>TREL ✨</span>
           </div>
 
           <!-- Connection Status Pill -->
@@ -443,19 +484,17 @@
         <div class="tab-pane active" id="tab-reset">
 
           <!-- Real-Time Hardware Diagnostic Telemetry Banner -->
-          <div class="diagnostic-banner" id="diagBanner">
+          <div class="diagnostic-banner cute-diag-banner" id="diagBanner">
             <div class="diag-left">
-              <span class="diag-icon" id="diagIcon">
-                <svg class="diag-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 2v6M6 8h12M6 8v5a6 6 0 0 0 12 0V8M12 19v3"></path>
-                </svg>
-              </span>
+              <div class="diag-cute-avatar" id="diagCuteAvatar">
+                <span class="cute-diag-emoji" id="diagCuteEmoji">😴</span>
+              </div>
               <div>
-                <div class="diag-headline" id="diagTitle">No Physical Printer Detected</div>
+                <div class="diag-headline" id="diagTitle">Awaiting Printer Connection <span class="cute-sparkle">✨</span></div>
                 <div class="diag-subline" id="diagDesc">Connect your printer via USB cable and turn power ON to read or reset counters.</div>
               </div>
             </div>
-            <button class="btn btn-secondary" id="btnQuickPurge" style="font-size: 12px; padding: 7px 14px;">
+            <button class="btn btn-secondary cute-purge-btn" id="btnQuickPurge">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
               </svg>
@@ -475,7 +514,7 @@
                       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                     </svg>
                   </div>
-                  <span>Waste Ink Pad Counter</span>
+                  <span>Waste Ink Pad Counter <span class="cute-sparkle">✨</span></span>
                 </div>
                 <span class="badge-tag" id="counterStatusBadge">NOT READ</span>
               </div>
@@ -489,9 +528,11 @@
                       stroke-dasharray="502.65" stroke-dashoffset="502.65"></circle>
                   </svg>
                   <div class="gauge-inner-content">
+                    <div class="gauge-cute-mood" id="gaugeCuteMood">✨ (◕‿◕)</div>
                     <div class="gauge-value" id="radialGaugeValue">--%</div>
                     <div class="gauge-label">Main Waste Pad</div>
                     <div class="gauge-subpoints" id="radialGaugePoints">-- / 6,346 pts</div>
+                    <div class="gauge-cute-subtext" id="gaugeCuteSubtext">Pristine & Clean 🌸</div>
                   </div>
                 </div>
               </div>
@@ -592,14 +633,17 @@
                       <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
                     </svg>
                   </div>
-                  <span>Ink Cartridges / Tanks</span>
+                  <span>Ink Cartridges / Tanks <span class="cute-sparkle">✨</span></span>
                 </div>
                 <span class="badge-tag" id="inkStatusBadge">Awaiting Connection</span>
               </div>
 
-              <!-- 4 Ink Tanks (CMYK) -->
+              <!-- 4 Cute Ink Tanks (CMYK) with Kawaii Face Caps -->
               <div class="ink-tanks-container">
                 <div class="ink-tank-card">
+                  <div class="cute-tank-character drop-bk" title="Key Black Tank (Click me!)">
+                    <span class="cute-character-face">(•̀ω•́)</span>
+                  </div>
                   <div class="ink-tank-glass">
                     <div class="tank-ruler-marks">
                       <span class="ruler-mark"></span>
@@ -613,6 +657,9 @@
                 </div>
 
                 <div class="ink-tank-card">
+                  <div class="cute-tank-character drop-cyan" title="Cyan Ink Tank (Click me!)">
+                    <span class="cute-character-face">(◕‿◕)</span>
+                  </div>
                   <div class="ink-tank-glass">
                     <div class="tank-ruler-marks">
                       <span class="ruler-mark"></span>
@@ -626,6 +673,9 @@
                 </div>
 
                 <div class="ink-tank-card">
+                  <div class="cute-tank-character drop-magenta" title="Magenta Ink Tank (Click me!)">
+                    <span class="cute-character-face">(✿◠‿◠)</span>
+                  </div>
                   <div class="ink-tank-glass">
                     <div class="tank-ruler-marks">
                       <span class="ruler-mark"></span>
@@ -639,6 +689,9 @@
                 </div>
 
                 <div class="ink-tank-card">
+                  <div class="cute-tank-character drop-yellow" title="Yellow Ink Tank (Click me!)">
+                    <span class="cute-character-face">(★‿★)</span>
+                  </div>
                   <div class="ink-tank-glass">
                     <div class="tank-ruler-marks">
                       <span class="ruler-mark"></span>

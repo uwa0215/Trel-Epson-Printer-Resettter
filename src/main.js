@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateSoundToggleUI();
   initTheme();
   initWelcomeIntro();
+  initDashboardCuteInteractions();
 
   // Periodic fallback synchronization every 3 seconds
   setInterval(loadSystemOverview, 3000);
@@ -261,6 +262,9 @@ function updateHardwareDisplay(connected, dev) {
   const activePortBadge = document.getElementById('activePortBadge');
 
 
+  const cuteEmoji = document.getElementById('diagCuteEmoji');
+  const companionBubble = document.getElementById('companionBubbleText');
+
   if (connected && dev) {
     statusText.innerText = `Connected via ${dev.port || 'USB'}`;
     deviceName.innerText = dev.name;
@@ -268,11 +272,13 @@ function updateHardwareDisplay(connected, dev) {
     led.style.backgroundColor = 'var(--accent-emerald)';
     led.style.boxShadow = '0 0 10px var(--accent-emerald)';
 
-    diagBanner.className = 'diagnostic-banner';
+    diagBanner.className = 'diagnostic-banner cute-diag-banner';
     diagBanner.style.background = '#f0fdf4';
     diagBanner.style.borderColor = '#bbf7d0';
-    diagIcon.innerHTML = SVG_ICONS.checkSuccess;
-    diagTitle.innerText = 'Printer Online & Ready';
+    if (diagIcon) diagIcon.innerHTML = SVG_ICONS.checkSuccess;
+    if (cuteEmoji) cuteEmoji.innerText = '🎉';
+    if (companionBubble) companionBubble.innerText = 'Yay! Printer is online & sparkling! ✨';
+    diagTitle.innerHTML = 'Printer Online & Ready <span class="cute-sparkle">✨</span>';
     diagDesc.innerText = `Normal Ready State (Physical Hardware Verified) • Port: ${dev.port || 'USB'}`;
     activeModelBadge.innerText = dev.model_id || state.activeModel;
     activePortBadge.innerText = dev.port || 'USB001';
@@ -283,11 +289,13 @@ function updateHardwareDisplay(connected, dev) {
     led.style.backgroundColor = 'var(--accent-amber)';
     led.style.boxShadow = '0 0 8px var(--accent-amber)';
 
-    diagBanner.className = 'diagnostic-banner warning';
+    diagBanner.className = 'diagnostic-banner cute-diag-banner warning';
     diagBanner.style.background = '#fffbeb';
     diagBanner.style.borderColor = '#fde68a';
-    diagIcon.innerHTML = SVG_ICONS.warningAmber;
-    diagTitle.innerText = `${dev.name} is Offline`;
+    if (diagIcon) diagIcon.innerHTML = SVG_ICONS.warningAmber;
+    if (cuteEmoji) cuteEmoji.innerText = '🔌';
+    if (companionBubble) companionBubble.innerText = 'Printer is sleeping! Turn power ON 🌸';
+    diagTitle.innerHTML = `${dev.name} is Offline <span class="cute-sparkle">💤</span>`;
     diagDesc.innerText = `Turn on printer power and securely plug the USB cable into port ${dev.port || 'USB'}.`;
     activeModelBadge.innerText = state.activeModel;
     activePortBadge.innerText = dev.port || 'USB';
@@ -299,11 +307,13 @@ function updateHardwareDisplay(connected, dev) {
     led.style.backgroundColor = 'var(--text-subtle)';
     led.style.boxShadow = 'none';
 
-    diagBanner.className = 'diagnostic-banner';
-    diagBanner.style.background = 'linear-gradient(135deg, #f0f9ff 0%, #f8fafc 100%)';
-    diagBanner.style.borderColor = 'var(--border-subtle)';
-    diagIcon.innerHTML = SVG_ICONS.plugMuted;
-    diagTitle.innerText = 'No Physical Printer Detected';
+    diagBanner.className = 'diagnostic-banner cute-diag-banner';
+    diagBanner.style.background = '';
+    diagBanner.style.borderColor = '';
+    if (diagIcon) diagIcon.innerHTML = SVG_ICONS.plugMuted;
+    if (cuteEmoji) cuteEmoji.innerText = '😴';
+    if (companionBubble) companionBubble.innerText = 'Ready to tune your printer! 💖';
+    diagTitle.innerHTML = 'Awaiting Printer Connection <span class="cute-sparkle">✨</span>';
     diagDesc.innerText = 'Connect your printer via USB cable and turn power ON to read or reset counters.';
     activePortBadge.innerText = 'Auto selection';
 
@@ -314,15 +324,24 @@ function updateHardwareDisplay(connected, dev) {
 
 function resetCounterDisplayToUnread() {
   const circle = document.getElementById('radialGaugeCircle');
-  circle.style.strokeDashoffset = 502.65; // 0% fill
-  document.getElementById('radialGaugeValue').innerText = '--%';
-  document.getElementById('radialGaugePoints').innerText = '-- / 6,346 pts';
+  if (circle) circle.style.strokeDashoffset = 502.65; // 0% fill
+  const valEl = document.getElementById('radialGaugeValue');
+  if (valEl) valEl.innerText = '--%';
+  const ptsEl = document.getElementById('radialGaugePoints');
+  if (ptsEl) ptsEl.innerText = '-- / 6,346 pts';
+
+  const cuteMood = document.getElementById('gaugeCuteMood');
+  if (cuteMood) cuteMood.innerText = '✨ (◕‿◕)';
+  const cuteSub = document.getElementById('gaugeCuteSubtext');
+  if (cuteSub) cuteSub.innerText = 'Pristine & Clean 🌸';
 
   const badge = document.getElementById('counterStatusBadge');
-  badge.className = 'badge-tag';
-  badge.style.background = '#f1f5f9';
-  badge.style.color = 'var(--text-muted)';
-  badge.innerText = 'NOT READ';
+  if (badge) {
+    badge.className = 'badge-tag';
+    badge.style.background = '#f1f5f9';
+    badge.style.color = 'var(--text-muted)';
+    badge.innerText = 'NOT READ';
+  }
 
   const mVal = document.getElementById('mainCounterVal');
   if (mVal) mVal.innerText = '-- pts (--%)';
@@ -492,21 +511,30 @@ function renderCounters(data) {
   document.getElementById('radialGaugePoints').innerText = `${(main.points || 0).toLocaleString()} / ${(main.max_points || 6346).toLocaleString()} pts`;
 
   const badge = document.getElementById('counterStatusBadge');
+  const cuteMood = document.getElementById('gaugeCuteMood');
+  const cuteSub = document.getElementById('gaugeCuteSubtext');
+
   if (mainPct >= 95) {
     badge.className = 'badge-tag critical';
     badge.style.backgroundColor = '';
     badge.style.color = '';
     badge.innerText = `CRITICAL ${mainDisplayPct}%`;
+    if (cuteMood) cuteMood.innerText = '⚠️ (>_<)';
+    if (cuteSub) cuteSub.innerText = 'Needs Reset Soon!';
   } else if (mainPct >= 80) {
     badge.className = 'badge-tag';
     badge.style.backgroundColor = 'rgba(245, 158, 11, 0.15)';
     badge.style.color = 'var(--accent-amber)';
     badge.innerText = `WARNING ${mainDisplayPct}%`;
+    if (cuteMood) cuteMood.innerText = '⭐ (・o・)';
+    if (cuteSub) cuteSub.innerText = 'Pad is Getting Full';
   } else {
     badge.className = 'badge-tag success';
     badge.style.backgroundColor = '';
     badge.style.color = '';
     badge.innerText = `NORMAL ${mainDisplayPct}%`;
+    if (cuteMood) cuteMood.innerText = '✨ (◕‿◕)';
+    if (cuteSub) cuteSub.innerText = 'Pristine & Clean 🌸';
   }
 
   // Row 1: Main Pad
@@ -2531,10 +2559,10 @@ function runWelcomeIntroSequence() {
 
     if (progress >= 100) {
       clearInterval(introProgressInterval);
-      // Auto-advance after 1.8 seconds of celebration
-      introTimer = setTimeout(() => {
-        closeWelcomeIntro();
-      }, 1800);
+      if (btnEnter) {
+        btnEnter.classList.add('pulse-ready');
+      }
+      // Stays visible indefinitely until the user clicks "Get Started"
     }
   }, 35);
 }
@@ -2542,11 +2570,13 @@ function runWelcomeIntroSequence() {
 function closeWelcomeIntro() {
   const overlay = document.getElementById('welcomeIntroOverlay');
   const card = document.getElementById('welcomeIntroCard');
+  const btnEnter = document.getElementById('btnEnterWorkspace');
   if (!overlay || !overlay.classList.contains('active')) return;
 
   if (introTimer) clearTimeout(introTimer);
   if (introProgressInterval) clearInterval(introProgressInterval);
 
+  if (btnEnter) btnEnter.classList.remove('pulse-ready');
   if (card) card.classList.add('closing');
   overlay.classList.remove('active');
 
@@ -2611,4 +2641,69 @@ function triggerMascotGiggle(e) {
     }, 1100);
   }
 }
+
+function initDashboardCuteInteractions() {
+  const brandBadge = document.getElementById('brandLogoMascot');
+  const companion = document.getElementById('sidebarCompanion');
+  const companionBubble = document.getElementById('companionBubbleText');
+
+  const companionPhrases = [
+    "Ready to tune your printer! 💖",
+    "Everything is sparkling clean! ✨",
+    "All 234 profiles loaded! 🚀",
+    "Your printhead is happy! 🌸",
+    "Need a cleaning cycle? Let's go! ⭐",
+    "Printy is always on watch! (◕‿◕)"
+  ];
+  let compIdx = 0;
+
+  if (brandBadge) {
+    brandBadge.addEventListener('click', (e) => {
+      playCuteChirp();
+      brandBadge.style.transform = 'translateY(-4px) scale(1.18) rotate(-6deg)';
+      setTimeout(() => brandBadge.style.transform = '', 450);
+      spawnFloatingHeart(e.clientX, e.clientY);
+    });
+  }
+
+  if (companion) {
+    companion.addEventListener('click', (e) => {
+      playCuteChirp();
+      companion.style.transform = 'translateY(-3px) scale(1.04)';
+      setTimeout(() => companion.style.transform = '', 350);
+      compIdx = (compIdx + 1) % companionPhrases.length;
+      if (companionBubble) companionBubble.innerText = companionPhrases[compIdx];
+      spawnFloatingHeart(e.clientX, e.clientY);
+    });
+  }
+
+  // Interactive ink tank character clicks
+  document.querySelectorAll('.cute-tank-character').forEach(tank => {
+    tank.addEventListener('click', (e) => {
+      playCuteChirp();
+      tank.style.transform = 'translateY(-8px) scale(1.3) rotate(8deg)';
+      setTimeout(() => tank.style.transform = '', 400);
+      spawnFloatingHeart(e.clientX, e.clientY);
+    });
+  });
+}
+
+function spawnFloatingHeart(clientX, clientY) {
+  const icons = ['💖', '✨', '⭐', '🌸'];
+  const heart = document.createElement('div');
+  heart.className = 'floating-heart';
+  heart.innerText = icons[Math.floor(Math.random() * icons.length)];
+  heart.style.position = 'fixed';
+  heart.style.left = `${clientX - 10}px`;
+  heart.style.top = `${clientY - 10}px`;
+  heart.style.setProperty('--tx', `${(Math.random() - 0.5) * 50}px`);
+  heart.style.setProperty('--rot', `${(Math.random() - 0.5) * 40}deg`);
+  heart.style.zIndex = '99999';
+  document.body.appendChild(heart);
+
+  setTimeout(() => {
+    if (heart.parentNode) heart.parentNode.removeChild(heart);
+  }, 1100);
+}
+
 
