@@ -43,6 +43,10 @@
         <stop offset="0%" stop-color="rgba(15, 23, 42, 0.4)" />
         <stop offset="100%" stop-color="rgba(15, 23, 42, 0)" />
       </radialGradient>
+      <linearGradient id="gaugeDropletGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#38bdf8" />
+        <stop offset="100%" stop-color="#6366f1" />
+      </linearGradient>
       <filter id="gaugeDropGlow" x="-20%" y="-20%" width="140%" height="140%">
         <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#38bdf8" flood-opacity="0.35" />
       </filter>
@@ -539,7 +543,7 @@
                 <span class="badge-tag" id="counterStatusBadge">NOT READ</span>
               </div>
 
-              <!-- Radial Gauge -->
+              <!-- Radial Gauge (Simple & Cute Kawaii Design) -->
               <div class="gauge-center-wrapper">
                 <div class="radial-gauge-container" id="radialGaugeInteractiveCard" title="Click gauge for a cute cheer! ✨">
                   <svg class="radial-svg" viewBox="0 0 200 200">
@@ -548,12 +552,27 @@
                       stroke-dasharray="502.65" stroke-dashoffset="502.65"></circle>
                   </svg>
                   <div class="gauge-inner-content">
-                    <div class="gauge-cute-mood" id="gaugeCuteMood">✨ (◕‿◕) ✨</div>
+                    <!-- Cute smiling mini droplet character -->
+                    <div class="gauge-cute-droplet" id="gaugeCuteMood">
+                      <svg class="droplet-mini-char" viewBox="0 0 32 36" fill="none">
+                        <path d="M16 3 C16 3, 5 17, 5 23 C5 29.1 9.9 34 16 34 C22.1 34 27 29.1 27 23 C27 17, 16 3, 16 3 Z" fill="url(#gaugeDropletGrad)" />
+                        <!-- Kawaii face -->
+                        <circle cx="12" cy="22" r="1.8" fill="#ffffff" />
+                        <circle cx="20" cy="22" r="1.8" fill="#ffffff" />
+                        <ellipse cx="9.5" cy="25" rx="1.5" ry="0.9" fill="#fb7185" opacity="0.85" />
+                        <ellipse cx="22.5" cy="25" rx="1.5" ry="0.9" fill="#fb7185" opacity="0.85" />
+                        <path d="M14 25 Q16 27.2 18 25" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" fill="none" />
+                      </svg>
+                    </div>
                     <div class="gauge-value" id="radialGaugeValue">--%</div>
-                    <div class="gauge-label">Main Waste Pad</div>
-                    <div class="gauge-subpoints" id="radialGaugePoints">-- / 6,346 pts</div>
-                    <div class="gauge-cute-subtext" id="gaugeCuteSubtext"><span class="badge-dot">●</span> Pristine & Clean 🌸</div>
+                    <div class="gauge-label">Waste Pad</div>
                   </div>
+                </div>
+
+                <!-- Clean cute meta info placed neatly below the dial -->
+                <div class="gauge-meta-row">
+                  <span class="gauge-subpoints-tag" id="radialGaugePoints">-- / 6,346 pts</span>
+                  <span class="gauge-cute-subtext" id="gaugeCuteSubtext"><span class="badge-dot">●</span> Pristine & Clean 🌸</span>
                 </div>
               </div>
 

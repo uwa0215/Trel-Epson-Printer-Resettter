@@ -330,8 +330,7 @@ function resetCounterDisplayToUnread() {
   const ptsEl = document.getElementById('radialGaugePoints');
   if (ptsEl) ptsEl.innerText = '-- / 6,346 pts';
 
-  const cuteMood = document.getElementById('gaugeCuteMood');
-  if (cuteMood) cuteMood.innerText = '✨ (◕‿◕) ✨';
+  setDropletMood('normal');
   const cuteSub = document.getElementById('gaugeCuteSubtext');
   if (cuteSub) cuteSub.innerHTML = '<span class="badge-dot">●</span> Pristine & Clean 🌸';
 
@@ -519,21 +518,21 @@ function renderCounters(data) {
     badge.style.backgroundColor = '';
     badge.style.color = '';
     badge.innerText = `CRITICAL ${mainDisplayPct}%`;
-    if (cuteMood) cuteMood.innerText = '⚠️ (>_<)';
+    setDropletMood('critical');
     if (cuteSub) cuteSub.innerHTML = '<span class="badge-dot" style="color:#ef4444;">●</span> Needs Reset Soon!';
   } else if (mainPct >= 80) {
     badge.className = 'badge-tag';
     badge.style.backgroundColor = 'rgba(245, 158, 11, 0.15)';
     badge.style.color = 'var(--accent-amber)';
     badge.innerText = `WARNING ${mainDisplayPct}%`;
-    if (cuteMood) cuteMood.innerText = '⭐ (・o・)';
+    setDropletMood('warning');
     if (cuteSub) cuteSub.innerHTML = '<span class="badge-dot" style="color:#f59e0b;">●</span> Pad is Getting Full';
   } else {
     badge.className = 'badge-tag success';
     badge.style.backgroundColor = '';
     badge.style.color = '';
     badge.innerText = `NORMAL ${mainDisplayPct}%`;
-    if (cuteMood) cuteMood.innerText = '✨ (◕‿◕) ✨';
+    setDropletMood('normal');
     if (cuteSub) cuteSub.innerHTML = '<span class="badge-dot">●</span> Pristine & Clean 🌸';
   }
 
@@ -2687,14 +2686,43 @@ function initDashboardCuteInteractions() {
       setTimeout(() => radialCard.style.transform = '', 350);
       spawnFloatingHeart(e.clientX, e.clientY);
       if (cuteMood) {
-        const orig = cuteMood.innerText;
-        cuteMood.innerText = '💖 (✿◠‿◠) ✨';
-        setTimeout(() => {
-          if (cuteMood.innerText === '💖 (✿◠‿◠) ✨') cuteMood.innerText = orig;
-        }, 1800);
+        cuteMood.style.transform = 'scale(1.3) rotate(-8deg)';
+        setTimeout(() => cuteMood.style.transform = '', 350);
       }
     });
   }
+
+function setDropletMood(state) {
+  const moodEl = document.getElementById('gaugeCuteMood');
+  if (!moodEl) return;
+  if (state === 'critical') {
+    moodEl.innerHTML = `
+      <svg class="droplet-mini-char" viewBox="0 0 32 36" fill="none">
+        <path d="M16 3 C16 3, 5 17, 5 23 C5 29.1 9.9 34 16 34 C22.1 34 27 29.1 27 23 C27 17, 16 3, 16 3 Z" fill="#ef4444" />
+        <path d="M11 20 L14 23 M14 20 L11 23" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" />
+        <path d="M18 20 L21 23 M21 20 L18 23" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" />
+        <path d="M13 27 Q16 25 19 27" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" fill="none" />
+      </svg>`;
+  } else if (state === 'warning') {
+    moodEl.innerHTML = `
+      <svg class="droplet-mini-char" viewBox="0 0 32 36" fill="none">
+        <path d="M16 3 C16 3, 5 17, 5 23 C5 29.1 9.9 34 16 34 C22.1 34 27 29.1 27 23 C27 17, 16 3, 16 3 Z" fill="#f59e0b" />
+        <circle cx="12" cy="22" r="1.8" fill="#ffffff" />
+        <circle cx="20" cy="22" r="1.8" fill="#ffffff" />
+        <ellipse cx="16" cy="26" rx="2" ry="2.2" fill="#ffffff" />
+      </svg>`;
+  } else {
+    moodEl.innerHTML = `
+      <svg class="droplet-mini-char" viewBox="0 0 32 36" fill="none">
+        <path d="M16 3 C16 3, 5 17, 5 23 C5 29.1 9.9 34 16 34 C22.1 34 27 29.1 27 23 C27 17, 16 3, 16 3 Z" fill="url(#gaugeDropletGrad)" />
+        <circle cx="12" cy="22" r="1.8" fill="#ffffff" />
+        <circle cx="20" cy="22" r="1.8" fill="#ffffff" />
+        <ellipse cx="9.5" cy="25" rx="1.5" ry="0.9" fill="#fb7185" opacity="0.85" />
+        <ellipse cx="22.5" cy="25" rx="1.5" ry="0.9" fill="#fb7185" opacity="0.85" />
+        <path d="M14 25 Q16 27.2 18 25" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" fill="none" />
+      </svg>`;
+  }
+}
 
   // Interactive ink tank character clicks
   document.querySelectorAll('.cute-tank-character').forEach(tank => {

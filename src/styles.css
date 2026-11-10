@@ -4763,41 +4763,66 @@ body {
   transform: translateY(-2px) scale(1.03) !important;
 }
 
-/* Cute Radial Gauge Face & Status */
-.gauge-cute-mood {
-  font-family: 'Fredoka', 'Quicksand', sans-serif;
-  font-size: 15px;
+/* Cute Mini Droplet Character & Gauge Meta Row */
+.gauge-cute-droplet {
+  width: 32px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: dropletGentleBob 2.8s ease-in-out infinite alternate;
+  margin-bottom: 2px;
+}
+
+@keyframes dropletGentleBob {
+  0% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3px) scale(1.05) rotate(-3deg); }
+  100% { transform: translateY(1px) scale(0.98) rotate(3deg); }
+}
+
+.droplet-mini-char {
+  width: 30px;
+  height: 34px;
+  filter: drop-shadow(0 3px 6px rgba(56, 189, 248, 0.4));
+}
+
+.gauge-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.gauge-subpoints-tag {
+  font-family: 'Fredoka', 'JetBrains Mono', monospace;
+  font-size: 11.5px;
   font-weight: 700;
   color: #0284c7;
-  letter-spacing: 0.04em;
-  margin-bottom: 2px;
-  animation: cuteMoodBob 2.6s ease-in-out infinite alternate;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(2, 132, 199, 0.08);
+  border: 1px solid rgba(2, 132, 199, 0.18);
 }
 
-[data-theme="dark"] .gauge-cute-mood {
+[data-theme="dark"] .gauge-subpoints-tag {
   color: #38bdf8;
-}
-
-@keyframes cuteMoodBob {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(-3px); }
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.25);
 }
 
 .gauge-cute-subtext {
   font-family: 'Fredoka', 'Quicksand', sans-serif;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
   letter-spacing: 0.02em;
   color: #059669;
-  margin-top: 8px;
   padding: 3px 12px;
   background: rgba(16, 185, 129, 0.12);
   border: 1.5px solid rgba(16, 185, 129, 0.28);
   border-radius: 999px;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.12);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.1);
   display: inline-flex;
   align-items: center;
   gap: 5px;
