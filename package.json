@@ -30,7 +30,7 @@
   },
   "build": {
     "appId": "com.trel.universaltool",
-    "productName": "Trel- Universal Tool",
+    "productName": "TREL",
     "copyright": "Copyright © 2026 Trel",
     "directories": {
       "output": "release"
@@ -93,7 +93,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Trel- Universal Tool",
+      "shortcutName": "TREL",
       "runAfterFinish": true
     },
     "portable": {

@@ -1,5 +1,5 @@
 /**
- * Trel- Universal Maintenance Tool - Electron Native Desktop Main Process
+ * TREL - Universal Maintenance Tool - Electron Native Desktop Main Process
  * Creates a dedicated, high-performance standalone Windows application window.
  */
 
@@ -13,8 +13,8 @@ let serverInstance = null;
 const SERVER_PORT = parseInt(process.env.PORT, 10) || 3000;
 
 // Set unique app name & isolated user data path to avoid collision with other Electron apps
-app.setName('TrelUniversalTool');
-app.setPath('userData', path.join(app.getPath('appData'), 'TrelUniversalTool'));
+app.setName('TREL');
+app.setPath('userData', path.join(app.getPath('appData'), 'TREL'));
 
 // Single-instance lock: ensure only one desktop window instance runs at a time
 const gotTheLock = app.requestSingleInstanceLock();
@@ -98,7 +98,7 @@ async function createWindow() {
       height: 840,
       minWidth: 360,
       minHeight: 500,
-      title: 'Trel- Universal Maintenance Tool',
+      title: 'TREL - Universal Maintenance Tool',
       backgroundColor: '#0a0d14',
       icon: iconPath,
       show: true,

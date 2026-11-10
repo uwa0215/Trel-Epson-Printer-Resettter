@@ -1,9 +1,9 @@
 @echo off
-title Trel- Universal Maintenance Tool
+title TREL - Universal Maintenance Tool
 cd /d "%~dp0"
 
 echo ======================================================================
-echo   Trel- Universal Maintenance Tool (Native Desktop Application)
+echo   TREL - Universal Maintenance Tool (Native Desktop Application)
 echo ======================================================================
 
 :: Build native spooler bridge if missing (32-bit x86 required for apdadrv.dll)

@@ -1,5 +1,5 @@
 /**
- * Trel- Universal Maintenance Tool - Modern Frontend Logic
+ * TREL - Universal Maintenance Tool - Modern Frontend Logic
  * Authentic AdjProg behavior: Strict physical presence, authentic 20000010 error handling,
  * and authentic Check & Initialization workflows.
  */
@@ -2312,7 +2312,7 @@ function copyCertificateData() {
   const notes = document.getElementById('certDiagNotesText')?.innerText || '';
 
   const report = `=======================================================
-TREL- UNIVERSAL PRINTER TOOL - SERVICE & DIAGNOSTICS CERTIFICATE
+TREL UNIVERSAL PRINTER TOOL - SERVICE & DIAGNOSTICS CERTIFICATE
 Universal Core v3.0 • IEEE 1284.4 D4 Spooler Engine
 =======================================================
 Service Work Order #: ${wo}
@@ -2548,7 +2548,7 @@ function runWelcomeIntroSequence() {
         pillCatalog.className = 'subsystem-pill ready';
       }
     } else if (progress >= 95) {
-      if (statusText) statusText.innerText = 'All systems ready! Welcome to Trel- Universal Tool ✨';
+      if (statusText) statusText.innerText = 'All systems ready! Welcome to TREL ✨';
       if (pillHw && !pillHw.classList.contains('ready')) {
         pillHw.className = 'subsystem-pill ready';
       }

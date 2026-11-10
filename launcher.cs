@@ -84,6 +84,7 @@ namespace UniversalAppLauncher
             catch (Exception ex)
             {
                 MessageBox.Show("Failed to launch Universal Tool:\n" + ex.Message, 
+                                "TREL",
                                 "Trel- Universal Tool", 
                                 MessageBoxButtons.OK, 
                                 MessageBoxIcon.Error);

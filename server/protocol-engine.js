@@ -322,7 +322,7 @@ class UniversalProtocolEngine {
       'Pattern #3:  |  |  |  |  |  |  |  [-3 -2 -1  0 +1 +2 +3]\r\n',
       'Pattern #4:  |  |  |  |  |  |  |  [-3 -2 -1  0 +1 +2 +3]\r\n\r\n',
       '------------------------------------------------------------\r\n',
-      'Trel- Universal Maintenance Tool v3.0\r\n'
+      'TREL Universal Maintenance Tool v3.0\r\n'
     ].join('');
 
     return Buffer.concat([
@@ -365,7 +365,7 @@ class UniversalProtocolEngine {
       `  Pickup Roller State : Calibrated OK\r\n`,
       `  Carriage Encoder    : Normal Index Pulse\r\n`,
       '========================================================================\r\n',
-      '         CERTIFIED SERVICE COMPLIANT - TREL- UNIVERSAL CORE             \r\n',
+      '         CERTIFIED SERVICE COMPLIANT - TREL UNIVERSAL CORE              \r\n',
       '========================================================================\r\n\r\n'
     ].join('');
 

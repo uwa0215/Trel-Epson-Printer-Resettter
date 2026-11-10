@@ -2247,7 +2247,7 @@ namespace UniversalSpoolerBridge
             int numLines = 18;    // 18 horizontal lines per box
 
             // -------------------------------------------------------------
-            // TOP BRANDING HEADER: Logo + "Trel- Universal Tool" + "Universal Core v3.0"
+            // TOP BRANDING HEADER: Logo + "TREL" + "Universal Core v3.0"
             // -------------------------------------------------------------
             int brandTop = 50;
             int logoSize = 46;
@@ -2291,7 +2291,7 @@ namespace UniversalSpoolerBridge
             using (SolidBrush brushTitle = new SolidBrush(Color.FromArgb(15, 23, 42)))
             using (SolidBrush brushSub = new SolidBrush(Color.FromArgb(2, 132, 199)))
             {
-                g.DrawString("Trel- Universal Tool", fontTitle, brushTitle, textLeft, brandTop + 1);
+                g.DrawString("TREL", fontTitle, brushTitle, textLeft, brandTop + 1);
                 g.DrawString("Universal Core v3.0", fontSub, brushSub, textLeft, brandTop + 25);
             }
 
