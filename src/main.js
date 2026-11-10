@@ -331,9 +331,9 @@ function resetCounterDisplayToUnread() {
   if (ptsEl) ptsEl.innerText = '-- / 6,346 pts';
 
   const cuteMood = document.getElementById('gaugeCuteMood');
-  if (cuteMood) cuteMood.innerText = '✨ (◕‿◕)';
+  if (cuteMood) cuteMood.innerText = '✨ (◕‿◕) ✨';
   const cuteSub = document.getElementById('gaugeCuteSubtext');
-  if (cuteSub) cuteSub.innerText = 'Pristine & Clean 🌸';
+  if (cuteSub) cuteSub.innerHTML = '<span class="badge-dot">●</span> Pristine & Clean 🌸';
 
   const badge = document.getElementById('counterStatusBadge');
   if (badge) {
@@ -520,21 +520,21 @@ function renderCounters(data) {
     badge.style.color = '';
     badge.innerText = `CRITICAL ${mainDisplayPct}%`;
     if (cuteMood) cuteMood.innerText = '⚠️ (>_<)';
-    if (cuteSub) cuteSub.innerText = 'Needs Reset Soon!';
+    if (cuteSub) cuteSub.innerHTML = '<span class="badge-dot" style="color:#ef4444;">●</span> Needs Reset Soon!';
   } else if (mainPct >= 80) {
     badge.className = 'badge-tag';
     badge.style.backgroundColor = 'rgba(245, 158, 11, 0.15)';
     badge.style.color = 'var(--accent-amber)';
     badge.innerText = `WARNING ${mainDisplayPct}%`;
     if (cuteMood) cuteMood.innerText = '⭐ (・o・)';
-    if (cuteSub) cuteSub.innerText = 'Pad is Getting Full';
+    if (cuteSub) cuteSub.innerHTML = '<span class="badge-dot" style="color:#f59e0b;">●</span> Pad is Getting Full';
   } else {
     badge.className = 'badge-tag success';
     badge.style.backgroundColor = '';
     badge.style.color = '';
     badge.innerText = `NORMAL ${mainDisplayPct}%`;
-    if (cuteMood) cuteMood.innerText = '✨ (◕‿◕)';
-    if (cuteSub) cuteSub.innerText = 'Pristine & Clean 🌸';
+    if (cuteMood) cuteMood.innerText = '✨ (◕‿◕) ✨';
+    if (cuteSub) cuteSub.innerHTML = '<span class="badge-dot">●</span> Pristine & Clean 🌸';
   }
 
   // Row 1: Main Pad
@@ -2674,6 +2674,25 @@ function initDashboardCuteInteractions() {
       compIdx = (compIdx + 1) % companionPhrases.length;
       if (companionBubble) companionBubble.innerText = companionPhrases[compIdx];
       spawnFloatingHeart(e.clientX, e.clientY);
+    });
+  }
+
+  // Interactive radial gauge cheer click
+  const radialCard = document.getElementById('radialGaugeInteractiveCard');
+  const cuteMood = document.getElementById('gaugeCuteMood');
+  if (radialCard) {
+    radialCard.addEventListener('click', (e) => {
+      playCuteChirp();
+      radialCard.style.transform = 'scale(1.05)';
+      setTimeout(() => radialCard.style.transform = '', 350);
+      spawnFloatingHeart(e.clientX, e.clientY);
+      if (cuteMood) {
+        const orig = cuteMood.innerText;
+        cuteMood.innerText = '💖 (✿◠‿◠) ✨';
+        setTimeout(() => {
+          if (cuteMood.innerText === '💖 (✿◠‿◠) ✨') cuteMood.innerText = orig;
+        }, 1800);
+      }
     });
   }
 
