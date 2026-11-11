@@ -4734,23 +4734,63 @@ body {
 }
 
 .diag-cute-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(99, 102, 241, 0.15));
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.16), rgba(99, 102, 241, 0.16));
+  border: 1.5px solid rgba(56, 189, 248, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.35rem;
   flex-shrink: 0;
-  animation: cuteAvatarSleep 3s ease-in-out infinite alternate;
+  cursor: pointer;
+  transition: transform var(--transition-bounce), box-shadow 0.25s ease;
+  overflow: visible;
 }
 
-@keyframes cuteAvatarSleep {
-  0% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-3px) rotate(-3deg); }
-  100% { transform: translateY(1px) rotate(3deg); }
+.diag-cute-avatar:hover {
+  transform: scale(1.08) translateY(-2px);
+  box-shadow: 0 6px 16px rgba(56, 189, 248, 0.25);
+}
+
+.cute-diag-emoji {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+}
+
+.diag-robot-svg {
+  width: 40px;
+  height: 38px;
+  overflow: visible;
+}
+
+.diag-robot-body {
+  transform-origin: center bottom;
+  animation: diagRobotSleepBreathe 3.2s ease-in-out infinite alternate;
+}
+
+@keyframes diagRobotSleepBreathe {
+  0% { transform: translateY(0) scale(1, 1) rotate(-1deg); }
+  100% { transform: translateY(-2px) scale(1.02, 0.98) rotate(2deg); }
+}
+
+.robot-sleep-z {
+  opacity: 0;
+  animation: sleepZFloatUp 2.6s ease-in-out infinite;
+}
+
+.robot-sleep-z.z2 {
+  animation-delay: 1.1s;
+}
+
+@keyframes sleepZFloatUp {
+  0% { transform: translate(0, 4px) scale(0.7); opacity: 0; }
+  30% { opacity: 1; }
+  80% { opacity: 0.9; }
+  100% { transform: translate(4px, -10px) scale(1.15); opacity: 0; }
 }
 
 .cute-purge-btn {

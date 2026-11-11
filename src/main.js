@@ -276,7 +276,7 @@ function updateHardwareDisplay(connected, dev) {
     diagBanner.style.background = '#f0fdf4';
     diagBanner.style.borderColor = '#bbf7d0';
     if (diagIcon) diagIcon.innerHTML = SVG_ICONS.checkSuccess;
-    if (cuteEmoji) cuteEmoji.innerText = '🎉';
+    setDiagRobotMood('awake');
     if (companionBubble) companionBubble.innerText = 'Yay! Printer is online & sparkling! ✨';
     diagTitle.innerHTML = 'Printer Online & Ready <span class="cute-sparkle">✨</span>';
     diagDesc.innerText = `Normal Ready State (Physical Hardware Verified) • Port: ${dev.port || 'USB'}`;
@@ -293,7 +293,7 @@ function updateHardwareDisplay(connected, dev) {
     diagBanner.style.background = '#fffbeb';
     diagBanner.style.borderColor = '#fde68a';
     if (diagIcon) diagIcon.innerHTML = SVG_ICONS.warningAmber;
-    if (cuteEmoji) cuteEmoji.innerText = '🔌';
+    setDiagRobotMood('offline');
     if (companionBubble) companionBubble.innerText = 'Printer is sleeping! Turn power ON 🌸';
     diagTitle.innerHTML = `${dev.name} is Offline <span class="cute-sparkle">💤</span>`;
     diagDesc.innerText = `Turn on printer power and securely plug the USB cable into port ${dev.port || 'USB'}.`;
@@ -311,7 +311,7 @@ function updateHardwareDisplay(connected, dev) {
     diagBanner.style.background = '';
     diagBanner.style.borderColor = '';
     if (diagIcon) diagIcon.innerHTML = SVG_ICONS.plugMuted;
-    if (cuteEmoji) cuteEmoji.innerText = '😴';
+    setDiagRobotMood('sleeping');
     if (companionBubble) companionBubble.innerText = 'Ready to tune your printer! 💖';
     diagTitle.innerHTML = 'Awaiting Printer Connection <span class="cute-sparkle">✨</span>';
     diagDesc.innerText = 'Connect your printer via USB cable and turn power ON to read or reset counters.';
@@ -2715,6 +2715,85 @@ function initDashboardCuteInteractions() {
       spawnFloatingHeart(e.clientX, e.clientY);
     });
   });
+
+  // Interactive diagnostic robot avatar click (gentle wake wink!)
+  const diagAvatar = document.getElementById('diagCuteAvatar');
+  if (diagAvatar) {
+    diagAvatar.addEventListener('click', (e) => {
+      playCuteChirp();
+      diagAvatar.style.transform = 'scale(1.15) rotate(-5deg)';
+      setTimeout(() => diagAvatar.style.transform = '', 380);
+      spawnFloatingHeart(e.clientX, e.clientY);
+    });
+  }
+}
+
+function setDiagRobotMood(mode) {
+  const container = document.getElementById('diagCuteEmoji');
+  if (!container) return;
+  if (mode === 'awake') {
+    container.innerHTML = `
+      <svg class="diag-robot-svg" viewBox="0 0 60 56" fill="none">
+        <path d="M51 9 Q53 9 53 6 Q53 9 55 9 Q53 9 53 12 Q53 9 51 9 Z" fill="#10b981" />
+        <g class="diag-robot-body">
+          <path d="M30 12 L30 7" stroke="#10b981" stroke-width="2" stroke-linecap="round" />
+          <circle cx="30" cy="6.5" r="2.8" fill="#10b981" />
+          <rect x="6" y="12" width="48" height="36" rx="12" fill="url(#mascotBodyGrad)" />
+          <rect x="9" y="15" width="42" height="30" rx="9" fill="#ffffff" />
+          <rect x="13" y="19" width="34" height="22" rx="7" fill="#0f172a" />
+          <!-- Happy awake sparkling eyes -->
+          <ellipse class="mascot-eye" cx="23" cy="28" rx="2.8" ry="3.8" fill="#38bdf8" />
+          <circle cx="24" cy="27" r="1.1" fill="#ffffff" />
+          <ellipse class="mascot-eye" cx="37" cy="28" rx="2.8" ry="3.8" fill="#38bdf8" />
+          <circle cx="38" cy="27" r="1.1" fill="#ffffff" />
+          <!-- Rosy cheeks -->
+          <ellipse cx="18.5" cy="34" rx="2.4" ry="1.3" fill="#fb7185" opacity="0.9" />
+          <ellipse cx="41.5" cy="34" rx="2.4" ry="1.3" fill="#fb7185" opacity="0.9" />
+          <!-- Happy smile -->
+          <path d="M27 32 Q30 35.5 33 32" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" fill="none" />
+        </g>
+      </svg>`;
+  } else if (mode === 'offline') {
+    container.innerHTML = `
+      <svg class="diag-robot-svg" viewBox="0 0 60 56" fill="none">
+        <text class="robot-sleep-z z1" x="44" y="14" fill="#f59e0b" font-family="Fredoka, Quicksand, sans-serif" font-weight="800" font-size="10">z</text>
+        <g class="diag-robot-body">
+          <path d="M30 12 L30 7" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" />
+          <circle cx="30" cy="6.5" r="2.5" fill="#f59e0b" />
+          <rect x="6" y="12" width="48" height="36" rx="12" fill="url(#mascotBodyGrad)" />
+          <rect x="9" y="15" width="42" height="30" rx="9" fill="#ffffff" />
+          <rect x="13" y="19" width="34" height="22" rx="7" fill="#0f172a" />
+          <!-- Drowsy half-closed eyes -->
+          <path d="M19 28 Q22.5 31 26 28" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" fill="none" />
+          <path d="M34 28 Q37.5 31 41 28" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" fill="none" />
+          <ellipse cx="18.5" cy="33" rx="2.4" ry="1.3" fill="#fb7185" opacity="0.85" />
+          <ellipse cx="41.5" cy="33" rx="2.4" ry="1.3" fill="#fb7185" opacity="0.85" />
+          <line x1="27" y1="33" x2="33" y2="33" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" />
+        </g>
+      </svg>`;
+  } else {
+    // Sleeping default
+    container.innerHTML = `
+      <svg class="diag-robot-svg" viewBox="0 0 60 56" fill="none">
+        <text class="robot-sleep-z z1" x="43" y="15" fill="#38bdf8" font-family="Fredoka, Quicksand, sans-serif" font-weight="800" font-size="10">z</text>
+        <text class="robot-sleep-z z2" x="49" y="8" fill="#818cf8" font-family="Fredoka, Quicksand, sans-serif" font-weight="800" font-size="12">Z</text>
+        <g class="diag-robot-body">
+          <path d="M30 12 L30 7" stroke="#6366f1" stroke-width="2" stroke-linecap="round" />
+          <circle cx="30" cy="6.5" r="2.5" fill="#94a3b8" />
+          <rect x="6" y="12" width="48" height="36" rx="12" fill="url(#mascotBodyGrad)" />
+          <rect x="9" y="15" width="42" height="30" rx="9" fill="#ffffff" />
+          <rect x="13" y="19" width="34" height="22" rx="7" fill="#0f172a" />
+          <!-- Cute closed sleeping eyelids -->
+          <path d="M19 28 Q22.5 31.5 26 28" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" fill="none" />
+          <path d="M34 28 Q37.5 31.5 41 28" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" fill="none" />
+          <!-- Rosy cheeks -->
+          <ellipse cx="18.5" cy="33" rx="2.4" ry="1.3" fill="#fb7185" opacity="0.85" />
+          <ellipse cx="41.5" cy="33" rx="2.4" ry="1.3" fill="#fb7185" opacity="0.85" />
+          <!-- Peaceful sleeping mouth -->
+          <circle cx="30" cy="33.5" r="1.8" fill="#ffffff" opacity="0.9" />
+        </g>
+      </svg>`;
+  }
 }
 
 function setDropletMood(state) {

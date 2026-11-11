@@ -510,8 +510,28 @@
           <!-- Real-Time Hardware Diagnostic Telemetry Banner -->
           <div class="diagnostic-banner cute-diag-banner" id="diagBanner">
             <div class="diag-left">
-              <div class="diag-cute-avatar" id="diagCuteAvatar">
-                <span class="cute-diag-emoji" id="diagCuteEmoji">😴</span>
+              <div class="diag-cute-avatar" id="diagCuteAvatar" title="Printy is resting until you plug in a printer! 💤">
+                <span class="cute-diag-emoji" id="diagCuteEmoji">
+                  <svg class="diag-robot-svg" viewBox="0 0 60 56" fill="none">
+                    <text class="robot-sleep-z z1" x="43" y="15" fill="#38bdf8" font-family="Fredoka, Quicksand, sans-serif" font-weight="800" font-size="10">z</text>
+                    <text class="robot-sleep-z z2" x="49" y="8" fill="#818cf8" font-family="Fredoka, Quicksand, sans-serif" font-weight="800" font-size="12">Z</text>
+                    <g class="diag-robot-body">
+                      <path d="M30 12 L30 7" stroke="#6366f1" stroke-width="2" stroke-linecap="round" />
+                      <circle cx="30" cy="6.5" r="2.5" fill="#94a3b8" />
+                      <rect x="6" y="12" width="48" height="36" rx="12" fill="url(#mascotBodyGrad)" />
+                      <rect x="9" y="15" width="42" height="30" rx="9" fill="#ffffff" />
+                      <rect x="13" y="19" width="34" height="22" rx="7" fill="#0f172a" />
+                      <!-- Cute closed sleeping eyelids -->
+                      <path d="M19 28 Q22.5 31.5 26 28" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" fill="none" />
+                      <path d="M34 28 Q37.5 31.5 41 28" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" fill="none" />
+                      <!-- Rosy cheeks -->
+                      <ellipse cx="18.5" cy="33" rx="2.4" ry="1.3" fill="#fb7185" opacity="0.85" />
+                      <ellipse cx="41.5" cy="33" rx="2.4" ry="1.3" fill="#fb7185" opacity="0.85" />
+                      <!-- Peaceful sleeping mouth -->
+                      <circle cx="30" cy="33.5" r="1.8" fill="#ffffff" opacity="0.9" />
+                    </g>
+                  </svg>
+                </span>
               </div>
               <div>
                 <div class="diag-headline" id="diagTitle">Awaiting Printer Connection <span class="cute-sparkle">✨</span></div>
