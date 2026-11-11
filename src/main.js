@@ -2692,6 +2692,31 @@ function initDashboardCuteInteractions() {
     });
   }
 
+  // Interactive ink tank character clicks
+  document.querySelectorAll('.cute-tank-character').forEach(tank => {
+    tank.addEventListener('click', (e) => {
+      playCuteChirp();
+      tank.style.animation = 'none';
+      tank.style.transform = 'translateY(-10px) scale(1.32) rotate(8deg)';
+      const faceEl = tank.querySelector('.cute-character-face');
+      const origFace = faceEl ? faceEl.innerText : '';
+      if (faceEl && !tank.dataset.bouncing) {
+        tank.dataset.bouncing = '1';
+        faceEl.innerText = '(≧◡≦)';
+        setTimeout(() => {
+          faceEl.innerText = origFace;
+          delete tank.dataset.bouncing;
+        }, 700);
+      }
+      setTimeout(() => {
+        tank.style.transform = '';
+        tank.style.animation = '';
+      }, 420);
+      spawnFloatingHeart(e.clientX, e.clientY);
+    });
+  });
+}
+
 function setDropletMood(state) {
   const moodEl = document.getElementById('gaugeCuteMood');
   if (!moodEl) return;
@@ -2722,17 +2747,6 @@ function setDropletMood(state) {
         <path d="M14 25 Q16 27.2 18 25" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" fill="none" />
       </svg>`;
   }
-}
-
-  // Interactive ink tank character clicks
-  document.querySelectorAll('.cute-tank-character').forEach(tank => {
-    tank.addEventListener('click', (e) => {
-      playCuteChirp();
-      tank.style.transform = 'translateY(-8px) scale(1.3) rotate(8deg)';
-      setTimeout(() => tank.style.transform = '', 400);
-      spawnFloatingHeart(e.clientX, e.clientY);
-    });
-  });
 }
 
 function spawnFloatingHeart(clientX, clientY) {

@@ -4836,29 +4836,70 @@ body {
 
 /* Cute Ink Tank Character Badges */
 .cute-tank-character {
-  width: 36px;
-  height: 24px;
-  border-radius: 12px 12px 6px 6px;
+  min-width: 46px;
+  width: auto;
+  height: 26px;
+  padding: 0 7px;
+  border-radius: 14px 14px 8px 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.65rem;
+  font-size: 0.68rem;
   font-weight: 800;
-  font-family: var(--font-mono);
-  margin-bottom: -6px;
-  z-index: 8;
+  font-family: 'Fredoka', 'Quicksand', var(--font-mono);
+  margin-bottom: -4px;
+  z-index: 10;
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
-  transition: all var(--transition-bounce);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+  transition: transform var(--transition-bounce), box-shadow 0.25s ease;
   user-select: none;
+  transform-origin: bottom center;
+  animation: cuteTankJellyDance 3.2s ease-in-out infinite;
+}
+
+.ink-tank-card:nth-child(1) .cute-tank-character { animation-delay: 0s; }
+.ink-tank-card:nth-child(2) .cute-tank-character { animation-delay: 0.35s; }
+.ink-tank-card:nth-child(3) .cute-tank-character { animation-delay: 0.7s; }
+.ink-tank-card:nth-child(4) .cute-tank-character { animation-delay: 1.05s; }
+
+@keyframes cuteTankJellyDance {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg) scale(1, 1);
+  }
+  20% {
+    transform: translateY(-5px) rotate(-5deg) scale(0.95, 1.06);
+  }
+  40% {
+    transform: translateY(0px) rotate(0deg) scale(1.07, 0.92);
+  }
+  60% {
+    transform: translateY(-4px) rotate(5deg) scale(0.96, 1.05);
+  }
+  80% {
+    transform: translateY(0px) rotate(0deg) scale(1.04, 0.96);
+  }
 }
 
 .cute-tank-character:hover {
-  transform: translateY(-4px) scale(1.15);
+  animation-play-state: paused;
+  transform: translateY(-7px) scale(1.18) rotate(-3deg);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
 }
 
 .cute-character-face {
-  letter-spacing: -0.05em;
+  display: inline-block;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  animation: cuteFaceBlink 4.5s ease-in-out infinite;
+}
+
+.ink-tank-card:nth-child(2) .cute-character-face { animation-delay: 0.8s; }
+.ink-tank-card:nth-child(3) .cute-character-face { animation-delay: 1.6s; }
+.ink-tank-card:nth-child(4) .cute-character-face { animation-delay: 2.4s; }
+
+@keyframes cuteFaceBlink {
+  0%, 90%, 96%, 100% { transform: scaleY(1); }
+  93% { transform: scaleY(0.18); }
 }
 
 /* Droplet colors */
