@@ -577,7 +577,8 @@ function renderCounters(data) {
 function playTone(freq, type = 'sine', duration = 0.15) {
   if (state.soundMuted) return;
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = getSharedAudioContext();
+    if (!ctx) return;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = type;
@@ -2396,29 +2397,160 @@ window.toggleTheme = function() {
 
 let introTimer = null;
 let introProgressInterval = null;
+let sharedAudioCtx = null;
+
+function getSharedAudioContext() {
+  try {
+    if (!sharedAudioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) sharedAudioCtx = new AC();
+    }
+    if (sharedAudioCtx && sharedAudioCtx.state === 'suspended') {
+      sharedAudioCtx.resume().catch(() => {});
+    }
+    return sharedAudioCtx;
+  } catch (e) {
+    return null;
+  }
+}
 
 function playWelcomeChime() {
   if (state.soundMuted) return;
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    // Warm harmonious arpeggio: C5 (523.25), E5 (659.25), G5 (783.99), C6 (1046.50)
-    const notes = [523.25, 659.25, 783.99, 1046.50];
-    notes.forEach((freq, idx) => {
+    const ctx = getSharedAudioContext();
+    if (!ctx) return;
+    // Playful kawaii music-box / marimba boot melody: C5 -> E5 -> G5 -> B5 -> C6
+    const notes = [
+      { freq: 523.25, delay: 0.00, dur: 0.32, vol: 0.11 },
+      { freq: 659.25, delay: 0.09, dur: 0.32, vol: 0.11 },
+      { freq: 783.99, delay: 0.18, dur: 0.32, vol: 0.12 },
+      { freq: 987.77, delay: 0.27, dur: 0.35, vol: 0.10 },
+      { freq: 1046.50, delay: 0.36, dur: 0.55, vol: 0.14 }
+    ];
+    notes.forEach(({ freq, delay, dur, vol }) => {
+      const osc = ctx.createOscillator();
+      const overtone = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const t = ctx.currentTime + delay;
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+      overtone.type = 'triangle';
+      overtone.frequency.setValueAtTime(freq * 2, t);
+
+      const overGain = ctx.createGain();
+      overGain.gain.setValueAtTime(vol * 0.25, t);
+      overGain.gain.exponentialRampToValueAtTime(0.0001, t + dur * 0.6);
+
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.linearRampToValueAtTime(vol, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+      osc.connect(gain);
+      overtone.connect(overGain);
+      overGain.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(t);
+      overtone.start(t);
+      osc.stop(t + dur);
+      overtone.stop(t + dur);
+    });
+  } catch (e) {}
+}
+
+function playCutePop(freq = 660) {
+  if (state.soundMuted) return;
+  try {
+    const ctx = getSharedAudioContext();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const t = ctx.currentTime;
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq * 0.75, t);
+    osc.frequency.exponentialRampToValueAtTime(freq * 1.25, t + 0.07);
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.09, t + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.11);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.11);
+  } catch (e) {}
+}
+
+function playWelcomeReadyFanfare() {
+  if (state.soundMuted) return;
+  try {
+    const ctx = getSharedAudioContext();
+    if (!ctx) return;
+    // Sparkling "Ta-da!" ready duo: G5 -> C6 + E6 shimmer
+    const seq = [
+      { freq: 783.99, delay: 0, dur: 0.2 },
+      { freq: 1046.50, delay: 0.1, dur: 0.45 },
+      { freq: 1318.51, delay: 0.13, dur: 0.45 }
+    ];
+    seq.forEach(({ freq, delay, dur }) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      const startTime = ctx.currentTime + (idx * 0.09);
-      const duration = 0.45;
-      
+      const t = ctx.currentTime + delay;
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, startTime);
-      gain.gain.setValueAtTime(0.001, startTime);
-      gain.gain.exponentialRampToValueAtTime(0.06, startTime + 0.04);
-      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
-      
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.linearRampToValueAtTime(0.11, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       osc.connect(gain);
       gain.connect(ctx.destination);
-      osc.start(startTime);
-      osc.stop(startTime + duration);
+      osc.start(t);
+      osc.stop(t + dur);
+    });
+  } catch (e) {}
+}
+
+function playMascotGiggleSound() {
+  if (state.soundMuted) return;
+  try {
+    const ctx = getSharedAudioContext();
+    if (!ctx) return;
+    // Adorable 3-note bubbly robot giggle
+    const giggles = [740, 988, 1245];
+    giggles.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const t = ctx.currentTime + i * 0.065;
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+      osc.frequency.exponentialRampToValueAtTime(freq * 1.25, t + 0.05);
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.linearRampToValueAtTime(0.1, t + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.09);
+    });
+  } catch (e) {}
+}
+
+function playButtonSparkle() {
+  if (state.soundMuted) return;
+  try {
+    const ctx = getSharedAudioContext();
+    if (!ctx) return;
+    [1046.5, 1318.5].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const t = ctx.currentTime + i * 0.055;
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.linearRampToValueAtTime(0.1, t + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.22);
     });
   } catch (e) {}
 }
@@ -2426,14 +2558,15 @@ function playWelcomeChime() {
 function playCuteChirp() {
   if (state.soundMuted) return;
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = getSharedAudioContext();
+    if (!ctx) return;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     const t = ctx.currentTime;
     osc.type = 'sine';
     osc.frequency.setValueAtTime(880, t);
     osc.frequency.exponentialRampToValueAtTime(1480, t + 0.12);
-    gain.gain.setValueAtTime(0.08, t);
+    gain.gain.setValueAtTime(0.09, t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
     osc.connect(gain);
     gain.connect(ctx.destination);
@@ -2456,11 +2589,23 @@ function initWelcomeIntro() {
   const showOnStartup = localStorage.getItem('trel_show_intro') !== 'false';
   if (chkShow) chkShow.checked = showOnStartup;
 
-  // Wire event handlers
-  if (btnSkip) btnSkip.addEventListener('click', closeWelcomeIntro);
-  if (btnEnter) btnEnter.addEventListener('click', closeWelcomeIntro);
+  // Wire event handlers with cute sound feedback
+  if (btnSkip) {
+    btnSkip.addEventListener('click', () => {
+      playCutePop(520);
+      closeWelcomeIntro();
+    });
+  }
+  if (btnEnter) {
+    btnEnter.addEventListener('mouseenter', () => playCutePop(880));
+    btnEnter.addEventListener('click', () => {
+      playButtonSparkle();
+      closeWelcomeIntro();
+    });
+  }
   if (chkShow) {
     chkShow.addEventListener('change', () => {
+      playCutePop(chkShow.checked ? 780 : 540);
       localStorage.setItem('trel_show_intro', chkShow.checked ? 'true' : 'false');
     });
   }
@@ -2470,10 +2615,23 @@ function initWelcomeIntro() {
     stage.addEventListener('click', triggerMascotGiggle);
   }
 
+  // Fallback unlock for plain web browsers if autoplay was suspended before first move/click
+  const unlockWelcomeAudio = () => {
+    const ctx = getSharedAudioContext();
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().then(() => {
+        if (overlay.classList.contains('active')) playCutePop(740);
+      }).catch(() => {});
+    }
+    window.removeEventListener('pointerdown', unlockWelcomeAudio);
+  };
+  window.addEventListener('pointerdown', unlockWelcomeAudio, { once: true });
+
   // Pressing Enter or Escape dismisses the welcome intro
   window.addEventListener('keydown', (e) => {
     if (overlay.classList.contains('active')) {
       if (e.key === 'Enter' || e.key === 'Escape') {
+        playButtonSparkle();
         closeWelcomeIntro();
       }
     }
@@ -2521,8 +2679,8 @@ function runWelcomeIntroSequence() {
     overlay.classList.add('active');
   });
 
-  // Play pleasant acoustic chime
-  setTimeout(playWelcomeChime, 250);
+  // Play cheerful welcome melody
+  setTimeout(playWelcomeChime, 220);
 
   // Progressive simulated boot pipeline (2.2s duration)
   let progress = 0;
@@ -2540,16 +2698,19 @@ function runWelcomeIntroSequence() {
       if (statusText) statusText.innerText = 'Windows Spooler Bridge active (x86 P/Invoke)...';
       if (pillBridge && !pillBridge.classList.contains('ready')) {
         pillBridge.className = 'subsystem-pill ready';
+        playCutePop(587.33); // D5 bubble pop
       }
     } else if (progress >= 65 && progress < 95) {
       if (statusText) statusText.innerText = 'Loaded 234 verified printer EEPROM profiles...';
       if (pillCatalog && !pillCatalog.classList.contains('ready')) {
         pillCatalog.className = 'subsystem-pill ready';
+        playCutePop(739.99); // F#5 bubble pop
       }
     } else if (progress >= 95) {
       if (statusText) statusText.innerText = 'All systems ready! Welcome to TREL ✨';
       if (pillHw && !pillHw.classList.contains('ready')) {
         pillHw.className = 'subsystem-pill ready';
+        playCutePop(880.00); // A5 bubble pop
       }
       if (btnEnter) {
         btnEnter.innerHTML = `<span>Get Started ✨</span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
@@ -2561,6 +2722,7 @@ function runWelcomeIntroSequence() {
       if (btnEnter) {
         btnEnter.classList.add('pulse-ready');
       }
+      playWelcomeReadyFanfare();
       // Stays visible indefinitely until the user clicks "Get Started"
     }
   }, 35);
@@ -2610,8 +2772,8 @@ function triggerMascotGiggle(e) {
   stage.classList.add('giggle');
   setTimeout(() => stage.classList.remove('giggle'), 750);
 
-  // Play audio blip
-  playCuteChirp();
+  // Play bubbly 3-note robot giggle!
+  playMascotGiggleSound();
 
   // Cycle speech bubble
   phraseIndex = (phraseIndex + 1) % cutePhrases.length;

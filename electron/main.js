@@ -16,6 +16,9 @@ const SERVER_PORT = parseInt(process.env.PORT, 10) || 3000;
 app.setName('TREL');
 app.setPath('userData', path.join(app.getPath('appData'), 'TREL'));
 
+// Allow cute startup welcome sounds to play immediately on launch without user gesture block
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+
 // Single-instance lock: ensure only one desktop window instance runs at a time
 const gotTheLock = app.requestSingleInstanceLock();
 
