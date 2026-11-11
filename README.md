@@ -1,8 +1,24 @@
-# Universal Adjustment Program & Maintenance Utility (AdjProg Pro Universal)
+# TREL — Universal Maintenance & EEPROM Reset Tool
 
-**AdjProg Pro Universal v3.0** is a standalone, ultra-modern Windows desktop application engineered for diagnosing, maintaining, reading, and resetting waste ink pad counters across **234 printer models**.
+**TREL v3.0** is a standalone, ultra-modern Windows desktop application engineered for diagnosing, maintaining, reading, and resetting waste ink pad counters across **234 printer models**.
 
 Converted from legacy Python/PyInstaller to a modern, lightning-fast **Node.js + Electron + Vite** architecture with direct Windows Spooler (`winspool.drv`) hardware communication.
+
+---
+
+## 💻 Running on Another PC (Important!)
+
+GitHub source code downloads (`Download ZIP`) exclude `node_modules/` and `dist/` because Electron binaries exceed GitHub's 100 MB per-file push limit. Choose either option below on a new PC:
+
+### Option A: Standalone Installer / Portable (Zero Setup — Recommended)
+Use **`TREL Setup 1.0.0.exe`** or **`TREL-Portable-1.0.0.exe`** (generated in `release/` or published under GitHub Releases).
+- Bundles **Node.js, Electron, Vite UI, and the 32-bit native Spooler Bridge** in a single executable.
+- Works on any Windows 10/11 PC with **no extra software required**.
+
+### Option B: From GitHub Source ZIP
+1. Install **[Node.js LTS](https://nodejs.org)** on the target Windows PC.
+2. Extract the downloaded GitHub folder and double-click **`TREL.exe`** or **`start_app.bat`**.
+3. On the first run, `TREL.exe` automatically installs dependencies (`npm install`), builds the UI (`npm run build:ui`), and launches the app!
 
 ---
 
@@ -10,10 +26,10 @@ Converted from legacy Python/PyInstaller to a modern, lightning-fast **Node.js +
 
 | Metric / Feature | Old Python / PyInstaller Stack | New Modern Node.js + Electron Stack |
 | :--- | :--- | :--- |
-| **Build Time** | 2 to 3 minutes (slow, fragile) | **~130 to 180 milliseconds** (Instant Vite build) |
+| **Build Time** | 2 to 3 minutes (slow, fragile) | **~130 to 400 milliseconds** (Instant Vite build) |
 | **Startup Speed** | 4 to 8s (unpacking pyinstaller temp files) | **Instant (< 1 second)** |
 | **Desktop Window** | Python webview / Tkinter fallback | **Native Windows Desktop Application (Electron)** |
-| **Executable Size** | 27 MB to 30 MB bloated Python runtime | **39 KB native launcher (`UniversalTool.exe`)** |
+| **Executable Size** | 27 MB to 30 MB bloated Python runtime | **Native Launcher (`TREL.exe`) + Standalone Installer** |
 | **Antivirus Compatibility** | Frequent false-positives with PyInstaller | Clean native Windows P/Invoke execution |
 | **Hardware Detection** | Polling Win32 print spooler | Real-time native P/Invoke + USB SetupAPI auto-detection |
 | **Telemetry & Live Dials** | Static periodic UI updates | **Live WebSocket streaming, dynamic radial gauge & fluid ink tanks** |
@@ -23,9 +39,9 @@ Converted from legacy Python/PyInstaller to a modern, lightning-fast **Node.js +
 ## 🚀 How to Launch
 
 ### Option 1: Standalone Desktop Application (1-Click)
-Double-click `UniversalTool.exe` or `start_app.bat` in the project root:
+Double-click `TREL.exe` or `start_app.bat` in the project root:
 ```bash
-.\UniversalTool.exe
+.\TREL.exe
 ```
 
 ### Option 2: Via npm Scripts
