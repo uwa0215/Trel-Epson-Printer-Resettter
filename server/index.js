@@ -802,10 +802,20 @@ app.post('/api/maintenance/air-bleed', async (req, res) => {
 // 9. Nozzle Check Test Print
 app.post('/api/maintenance/nozzle-check', async (req, res) => {
   const { use_raster = false, printer_name } = req.body;
-  const requested = printer_name !== undefined ? printer_name : activeTarget.printer_name;
-  const effectiveName = await resolveEffectivePrinter(requested);
+  const requested = (printer_name !== undefined && printer_name !== '') ? printer_name : activeTarget.printer_name;
+  let effectiveName = (requested && requested !== 'Auto selection' && requested !== 'Auto') ? requested : '';
 
-  if (!effectiveName || effectiveName === '' || !(await isPrinterOnline(effectiveName))) {
+  // Only query printer list if no specific printer was selected
+  if (!effectiveName) {
+    const installed = await spoolerBridge.listPrinters();
+    const physical = installed.find(p => (p.is_physically_connected || p.is_network_reachable) && (p.is_supported ?? p.is_epson) && !p.is_fax && !p.is_offline) ||
+                     installed.find(p => (p.is_physically_connected || p.is_network_reachable) && (p.is_supported ?? p.is_epson) && !p.is_fax) ||
+                     installed.find(p => (p.is_supported ?? p.is_epson) && !p.is_offline) ||
+                     installed.find(p => (p.is_supported ?? p.is_epson));
+    effectiveName = physical ? physical.name : '';
+  }
+
+  if (!effectiveName) {
     return res.status(400).json({
       status: 'error',
       code: 20000010,

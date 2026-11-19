@@ -50,3 +50,4 @@ jobs:
         with:
           tag_name: ${{ inputs.release_tag || github.ref_name }}
           files: release/*.exe
+

@@ -1397,9 +1397,20 @@ window.printNozzleCheckFromModal = function() {
   window.printNozzleCheck(false);
 };
 
+let isPrintingNozzleCheck = false;
 window.printNozzleCheck = async function(useRaster) {
+  if (isPrintingNozzleCheck) return;
+  isPrintingNozzleCheck = true;
+
+  const btn = useRaster ? document.getElementById('btnRasterNozzleCheck') : document.getElementById('btnOriginalNozzleCheck');
+  const originalHtml = btn ? btn.innerHTML : null;
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-inline" style="display:inline-block; width:13px; height:13px; border:2px solid currentColor; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; vertical-align:middle; margin-right:6px;"></span><span>Dispatching Nozzle Check...</span>`;
+  }
+
   const target = getTargetPrinterName();
-  window.showToast('🚀 Dispatching Nozzle Check pattern to printer spooler...', 'info', 2500);
+  window.showToast('🚀 Dispatching authentic Nozzle Check pattern to printer spooler...', 'info', 2000);
 
   try {
     const res = await fetch('/api/maintenance/nozzle-check', {
@@ -1419,6 +1430,12 @@ window.printNozzleCheck = async function(useRaster) {
     window.showToast(`✔ Original nozzle check pattern sent to spooler [${data.printer || target || 'Default Printer'}]`, 'success', 4500);
   } catch (err) {
     openCommErrorModal(`Communication error: ${err.message}`);
+  } finally {
+    isPrintingNozzleCheck = false;
+    if (btn && originalHtml) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
   }
 };
 
